@@ -1,0 +1,377 @@
+:root {
+  --felt: #1b4d3e;
+  --felt-dark: #143b30;
+  --cream: #f7f1e3;
+  --paper: #fffdf7;
+  --ink: #2b2620;
+  --ink-soft: #5c5246;
+  --amber: #e8a13c;
+  --amber-dark: #b97a1f;
+  --line: #e4d9c2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Fredoka", system-ui, sans-serif;
+  background: var(--felt);
+  color: var(--ink);
+}
+
+/* ---------- Kerangka halaman ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 20px;
+  background: var(--felt-dark);
+  color: var(--cream);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--cream);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.topbar nav a {
+  color: #cfe3d8;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.topbar nav a.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.player-chip {
+  background: var(--amber);
+  color: #3b2a08;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 16px 64px;
+}
+
+main h2 {
+  color: var(--cream);
+  font-weight: 600;
+  margin: 0 0 18px;
+}
+
+.footer {
+  text-align: center;
+  color: #9fc3b2;
+  font-size: 12px;
+  padding: 16px 0 28px;
+}
+
+.muted {
+  color: #bdd8ca;
+  font-size: 14px;
+  margin-top: -8px;
+}
+
+/* ---------- Gerbang nama ---------- */
+.name-gate {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.name-card {
+  background: var(--paper);
+  border-radius: 18px;
+  padding: 36px 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  border-bottom: 5px solid var(--amber-dark);
+}
+
+.name-card h1 {
+  margin: 14px 0 6px;
+  font-weight: 600;
+  color: var(--felt-dark);
+}
+
+.name-card p {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin: 0 0 22px;
+}
+
+.name-card form {
+  display: grid;
+  gap: 10px;
+}
+
+.name-card input {
+  font: inherit;
+  font-size: 17px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+  outline-color: var(--amber);
+}
+
+.name-card small {
+  display: block;
+  margin-top: 14px;
+  color: #9b8a6b;
+}
+
+/* Logo: sisi dadu "5" dari pip CSS murni */
+.dice-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  background: var(--felt-dark);
+  border-radius: 14px;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 10px;
+  gap: 2px;
+}
+
+.dice-logo span {
+  background: var(--amber);
+  border-radius: 50%;
+}
+
+.dice-logo span:nth-child(1) { grid-area: 1 / 1; }
+.dice-logo span:nth-child(2) { grid-area: 1 / 3; }
+.dice-logo span:nth-child(3) { grid-area: 2 / 2; }
+.dice-logo span:nth-child(4) { grid-area: 3 / 1; }
+.dice-logo span:nth-child(5) { grid-area: 3 / 3; }
+
+/* ---------- Tombol umum ---------- */
+button {
+  font: inherit;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  background: var(--amber);
+  color: #3b2a08;
+  cursor: pointer;
+  border-bottom: 3px solid var(--amber-dark);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* ---------- Lobi ---------- */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.game-card {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 22px 20px;
+  text-decoration: none;
+  color: var(--ink);
+  border-bottom: 4px solid var(--amber-dark);
+  transition: transform 0.12s ease;
+  display: block;
+}
+
+a.game-card:hover {
+  transform: translateY(-3px);
+}
+
+.game-card.disabled {
+  opacity: 0.65;
+  border-bottom-color: #b4b2a9;
+}
+
+.game-icon {
+  font-size: 34px;
+}
+
+.game-card h3 {
+  margin: 10px 0 6px;
+  font-weight: 600;
+  color: var(--felt-dark);
+}
+
+.game-card p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+  min-height: 38px;
+}
+
+.badge {
+  font-size: 12px;
+  background: #ece5d3;
+  color: #7a6c50;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.badge.live {
+  background: #d9efe2;
+  color: #1b6b46;
+}
+
+/* ---------- Hall of Fame ---------- */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cream);
+  border-bottom: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.chip.active {
+  background: var(--amber);
+  color: #3b2a08;
+}
+
+.hof table {
+  width: 100%;
+  background: var(--paper);
+  border-radius: 14px;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+.hof th,
+.hof td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.hof th {
+  background: #efe6d2;
+  color: #7a6c50;
+  font-size: 13px;
+}
+
+.hof tbody tr:first-child td {
+  font-weight: 600;
+  color: var(--amber-dark);
+}
+
+/* ---------- Halaman game ---------- */
+.mode-select {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.mode-select h2 {
+  color: var(--felt-dark);
+  margin-top: 0;
+}
+
+.mode-select p {
+  color: var(--ink-soft);
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0 26px;
+  flex-wrap: wrap;
+}
+
+.phaser-wrap {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cream);
+  border-bottom: none;
+  font-weight: 500;
+}
+
+.phaser-host {
+  width: 100%;
+  max-width: 520px;
+  justify-self: center;
+}
+
+.phaser-host canvas {
+  border-radius: 14px;
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* ---------- Iklan & kondisi kosong ---------- */
+.ad-placeholder {
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: #9fc3b2;
+  font-size: 13px;
+  text-align: center;
+  padding: 28px 16px;
+  margin-top: 8px;
+}
+
+.empty {
+  background: var(--paper);
+  border-radius: 14px;
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-soft);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
