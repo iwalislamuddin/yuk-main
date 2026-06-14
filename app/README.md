@@ -5,7 +5,7 @@ Platform web PWA berisi kumpulan board game — main **online** atau **lawan bot
 | Game | Status |
 |---|---|
 | Ular Tangga | ✅ Bisa dimainkan (vs bot offline & online 1v1) |
-| Ludo | 🔜 Segera (kartunya sudah ada di lobi) |
+| Ludo | ✅ Bisa dimainkan (vs 3 bot offline & online 2 pemain) |
 | Halma | 🔜 Segera |
 
 ## Stack
@@ -24,7 +24,7 @@ npm run dev        # jalankan client (port 5173) + server (port 2567) sekaligus
 Buka `http://localhost:5173`:
 
 1. Masukkan nama → tersimpan di perangkat (localStorage).
-2. Pilih **Ular Tangga** → **Lawan bot (offline)** langsung bisa dimainkan.
+2. Pilih **Ular Tangga** atau **Ludo** → **Lawan bot (offline)** langsung bisa dimainkan (Ludo = kamu vs 3 bot).
 3. Untuk **Main online**: buka tab/browser kedua, masukkan nama berbeda, pilih Main online di keduanya — room otomatis dipasangkan.
 
 Build produksi: `npm run build` → hasil di `client/dist/` (termasuk service worker & manifest PWA).
@@ -44,20 +44,31 @@ arena-papan/
 │       ├── pages/                  # Lobby, HallOfFame, GamePage
 │       └── games/
 │           ├── registry.js         # daftar game di platform
-│           └── snakes-ladders/
-│               ├── logic.js               # aturan inti (duplikat di server!)
-│               ├── SnakesLaddersScene.js  # rendering Phaser (papan, token, dadu)
-│               ├── LocalBotController.js  # mode offline vs bot
-│               └── OnlineController.js    # mode online via Colyseus
+│           ├── snakes-ladders/
+│           │   ├── index.js                # antarmuka seragam (createGame + controller)
+│           │   ├── logic.js                # aturan inti (duplikat di server!)
+│           │   ├── SnakesLaddersScene.js   # rendering Phaser (papan, token, dadu)
+│           │   ├── LocalBotController.js   # mode offline vs bot
+│           │   └── OnlineController.js     # mode online via Colyseus
+│           └── ludo/
+│               ├── index.js                # antarmuka seragam
+│               ├── logic.js                # aturan Ludo (duplikat di server!)
+│               ├── LudoScene.js            # rendering Phaser (papan salib, pion, dadu)
+│               ├── LocalBotController.js   # offline: kamu vs 3 bot
+│               └── OnlineController.js     # online via Colyseus
 └── server/
     ├── index.js                    # Express + Colyseus, endpoint /health
-    ├── logic/snakesLadders.js      # aturan inti sisi server (otoritatif)
+    ├── logic/
+    │   ├── snakesLadders.js        # aturan inti sisi server (otoritatif)
+    │   └── ludo.js                 # aturan Ludo sisi server (otoritatif)
     └── rooms/
-        ├── schema.js               # state tersinkron (players, giliran, dadu)
-        └── SnakesLaddersRoom.js    # room 1v1: join, roll, validasi giliran
+        ├── schema.js               # state Ular Tangga tersinkron
+        ├── SnakesLaddersRoom.js    # room 1v1: join, roll, validasi giliran
+        ├── ludoSchema.js           # state Ludo tersinkron (pion, giliran, dadu)
+        └── LudoRoom.js             # room Ludo: roll + move, validasi giliran
 ```
 
-**Pola arsitektur kunci**: scene Phaser hanya *merender state* dan tidak tahu sedang offline atau online. Keduanya lewat antarmuka controller yang sama (`onUpdate`, `requestRoll`, `dispose`). Menambah game baru = scene baru + 2 controller + 1 room di server.
+**Pola arsitektur kunci**: scene Phaser hanya *merender state* dan tidak tahu sedang offline atau online. Keduanya lewat antarmuka controller yang sama (`onUpdate`, `requestRoll`, `dispose`; Ludo menambah `requestMove`). Tiap game punya `index.js` (createGame + controller) yang dipetakan di `pages/GamePage.jsx`. Menambah game baru = folder game + scene + 2 controller + 1 room di server.
 
 ## Hall of Fame
 
@@ -84,7 +95,7 @@ arena-papan/
 
 1. **Bot di server** untuk mode online (bot join room sebagai pemain jika lawan tak kunjung datang).
 2. **Ular Tangga 3–4 pemain**: naikkan `maxClients` di `SnakesLaddersRoom` + opsi jumlah pemain di UI.
-3. **Ludo**: room baru + scene baru; logikanya paling rumit di aturan keluar kandang & menendang pion lawan.
+3. **Ludo online 3–4 pemain**: naikkan `maxClients` di `LudoRoom` (default 2) + tangani pemain keluar di tengah main untuk >2 pemain (lihat catatan di `onLeave`).
 4. **Halma**: butuh AI lompatan (greedy/minimax) untuk botnya.
 5. **Hall of Fame global** di server + reconnect handling (`allowReconnection` di Colyseus).
 6. **Ad Placement API** untuk interstitial antar match.

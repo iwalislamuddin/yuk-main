@@ -15,7 +15,7 @@ export const GAMES = [
     icon: "🎲",
     desc: "Bawa keempat pionmu pulang ke rumah sebelum lawan.",
     players: "2-4",
-    available: false
+    available: true
   },
   {
     id: "halma",

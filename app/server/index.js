@@ -5,6 +5,7 @@ const cors = require("cors");
 const { Server } = require("colyseus");
 const { WebSocketTransport } = require("@colyseus/ws-transport");
 const { SnakesLaddersRoom } = require("./rooms/SnakesLaddersRoom");
+const { LudoRoom } = require("./rooms/LudoRoom");
 
 const PORT = process.env.PORT || 2567;
 
@@ -25,7 +26,8 @@ const gameServer = new Server({
 
 // Daftarkan room per game. Game baru = define() baru + file room baru.
 gameServer.define("snakes_ladders", SnakesLaddersRoom);
-// gameServer.define("ludo", LudoRoom);
+// filterBy mode: pemain online hanya dipasangkan dengan mode kemenangan sama.
+gameServer.define("ludo", LudoRoom).filterBy(["mode"]);
 // gameServer.define("halma", HalmaRoom);
 
 httpServer.listen(PORT, () =>

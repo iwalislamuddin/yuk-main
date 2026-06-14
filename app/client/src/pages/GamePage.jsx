@@ -3,13 +3,19 @@ import { useParams, Link } from "react-router-dom";
 import { GAMES } from "../games/registry.js";
 import { recordResult } from "../lib/storage.js";
 import AdSlot from "../components/AdSlot.jsx";
-import { createSnakesLaddersGame } from "../games/snakes-ladders/createGame.js";
-import { LocalBotController } from "../games/snakes-ladders/LocalBotController.js";
-import { OnlineController } from "../games/snakes-ladders/OnlineController.js";
+import snakesLaddersModule from "../games/snakes-ladders/index.js";
+import ludoModule from "../games/ludo/index.js";
+
+// Peta gameId -> modul game (createGame + controller). Tambah game baru di sini.
+const GAME_MODULES = {
+  "ular-tangga": snakesLaddersModule,
+  ludo: ludoModule
+};
 
 export default function GamePage({ playerName }) {
   const { gameId } = useParams();
   const [mode, setMode] = useState(null); // null | "bot" | "online"
+  const [winMode, setWinMode] = useState("single"); // single | ranking (khusus Ludo)
   const game = GAMES.find((g) => g.id === gameId);
 
   if (!game) {
@@ -32,6 +38,27 @@ export default function GamePage({ playerName }) {
       <div className="mode-select">
         <h2>{game.name}</h2>
         <p>{game.desc}</p>
+        {game.id === "ludo" && (
+          <div className="win-mode">
+            <p className="win-mode-label">Mode kemenangan</p>
+            <div className="win-mode-options">
+              <button
+                className={`wm-option${winMode === "single" ? " active" : ""}`}
+                onClick={() => setWinMode("single")}
+              >
+                <strong>🏆 Pemenang pertama</strong>
+                <small>Selesai begitu ada yang menang</small>
+              </button>
+              <button
+                className={`wm-option${winMode === "ranking" ? " active" : ""}`}
+                onClick={() => setWinMode("ranking")}
+              >
+                <strong>🥇 Sampai semua peringkat</strong>
+                <small>Lanjut sampai juara 1–4</small>
+              </button>
+            </div>
+          </div>
+        )}
         <div className="mode-buttons">
           <button onClick={() => setMode("bot")}>Lawan bot (offline)</button>
           <button onClick={() => setMode("online")}>Main online</button>
@@ -43,8 +70,9 @@ export default function GamePage({ playerName }) {
 
   return (
     <PhaserHost
-      key={mode}
+      key={`${mode}-${winMode}`}
       mode={mode}
+      winMode={winMode}
       playerName={playerName}
       gameId={gameId}
       onExit={() => setMode(null)}
@@ -52,16 +80,21 @@ export default function GamePage({ playerName }) {
   );
 }
 
-function PhaserHost({ mode, playerName, gameId, onExit }) {
+function PhaserHost({ mode, winMode, playerName, gameId, onExit }) {
   const hostRef = useRef(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const mod = GAME_MODULES[gameId];
+    if (!mod) {
+      setError("Modul permainan ini belum tersedia.");
+      return;
+    }
     const serverUrl = import.meta.env.VITE_SERVER_URL || "ws://localhost:2567";
     const controller =
       mode === "bot"
-        ? new LocalBotController(playerName)
-        : new OnlineController(serverUrl, playerName);
+        ? new mod.LocalBotController(playerName, { winMode })
+        : new mod.OnlineController(serverUrl, playerName, { winMode });
 
     let phaserGame = null;
     let cancelled = false;
@@ -71,7 +104,7 @@ function PhaserHost({ mode, playerName, gameId, onExit }) {
         // Mode online: join room dulu sebelum scene dibuat.
         if (controller.connect) await controller.connect();
         if (cancelled) return;
-        phaserGame = createSnakesLaddersGame(hostRef.current, {
+        phaserGame = mod.createGame(hostRef.current, {
           controller,
           onGameOver: ({ iWon }) => recordResult(gameId, { win: iWon })
         });
@@ -88,7 +121,7 @@ function PhaserHost({ mode, playerName, gameId, onExit }) {
       controller.dispose?.();
       phaserGame?.destroy(true);
     };
-  }, [mode, playerName, gameId]);
+  }, [mode, winMode, playerName, gameId]);
 
   if (error) {
     return (

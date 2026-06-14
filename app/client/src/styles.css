@@ -316,6 +316,50 @@ a.game-card:hover {
   color: var(--ink-soft);
 }
 
+.win-mode {
+  margin: 18px 0 6px;
+}
+
+.win-mode-label {
+  font-weight: 600;
+  color: var(--felt-dark) !important;
+  margin: 0 0 8px;
+}
+
+.win-mode-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wm-option {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.wm-option strong {
+  color: var(--felt-dark);
+}
+
+.wm-option small {
+  color: var(--ink-soft);
+}
+
+.wm-option.active {
+  border-color: var(--amber);
+  background: #fff7ea;
+  box-shadow: 0 0 0 1px var(--amber) inset;
+}
+
 .mode-buttons {
   display: flex;
   gap: 12px;
