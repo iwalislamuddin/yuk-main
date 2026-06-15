@@ -1,11 +1,11 @@
 # Handoff — Arena Papan
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 13 Juni 2026 (sesi 2).
+> Terakhir diperbarui: 15 Juni 2026 (sesi 3).
 
 ## Gambaran proyek
 
-Kumpulan board game online (saat ini: Ular Tangga & Ludo, mode online & lawan bot).
+Kumpulan board game online (saat ini: Ular Tangga, Ludo, & Halma; mode online & lawan bot).
 
 - Lokasi kode: folder `app/` (npm workspaces: `client` + `server`)
 - **Client**: Vite + React + Phaser 3 + PWA → http://localhost:5173
@@ -70,6 +70,52 @@ Kumpulan board game online (saat ini: Ular Tangga & Ludo, mode online & lawan bo
    bersih; **uji visual mode bot di browser** (papan, pion, dadu, pilih-pion,
    bot main — semua jalan; satu-satunya error console = 404 aset belum ada).
 
+## Yang sudah dikerjakan (sesi 3 — 15 Juni 2026)
+
+1. **Game Halma bintang (Chinese Checkers) lengkap & bisa dimainkan** (offline:
+   kamu vs 1-2 bot; online: 2 pemain):
+   - Papan = **bintang 6 sudut (hexagram) 121 lubang**, dimodelkan dgn
+     **koordinat kubus hex** (x+y+z=0): hexagon pusat (61) + 6 segitiga sudut
+     (6×10). Logika inti: `client/src/games/halma/logic.js` (+ kembarannya
+     `server/logic/halma.js`, perilaku WAJIB identik). Aturan: tiap pemain 10
+     pion di satu sudut → pindahkan SEMUA ke sudut seberang; langkah = geser ke
+     lubang tetangga kosong ATAU **lompati pion (boleh berantai)**; tak ada yg
+     dimakan. `destinationsFrom(occupied, from)` (BFS lompatan) jadi sumber
+     langkah sah untuk bot, UI highlight, & validasi server.
+   - **Sudut** (searah jarum jam dari atas): 0 atas, 1 kanan-atas, 2 kanan-bawah,
+     3 bawah, 4 kiri-bawah, 5 kiri-atas; target = (seat+3)%6. 2 pemain=[0,3];
+     3 pemain=[0,2,4] (target = 3 sudut kosong, seimbang). Warna per sudut.
+   - **Bot 3 tingkat** (`LocalBotController.js`). PENTING: Halma itu BALAPAN &
+     rantai lompatan sudah jadi SATU langkah → greedy 1-langkah dgn evaluasi
+     bagus sudah kuat; **kedalaman minimax murni MENCUCI beda antar langkah →
+     malah lemah** (sudah terbukti & dibuang). Maka tingkat dibedakan lewat
+     KUALITAS evaluasi + kebijakan: Mudah=greedy+blunder acak; Normal=evaluasi
+     penuh (abaikan laggard); Susah=evaluasi sadar-laggard + **lookahead 2-ply
+     sebagai pemecah-seri** (tempo tetap primer). Evaluasi: jarak ke **lubang
+     target terdekat yg masih kosong** (dinamis) + bonus pion menetap — kunci
+     agar endgame konvergen (tidak mandek/oscillasi). Validasi turnamen di
+     `server/logic/halma.bot.cjs`: **hard 24-0 & 26-3, normal 21-1** vs easy,
+     ~0 timeout, 0.57 ms/langkah.
+   - Scene Phaser `HalmaScene.js`: papan bintang vektor (kisi + lubang ber-tint
+     sudut) + **fallback PNG** (board.png + marble.png yg di-tint per warna);
+     pilih pion → titik tujuan kuning bisa diklik → animasi geser/lompat (hop);
+     penanda giliran (lingkaran berkedip di rumah aktif), toast finisher,
+     overlay pemenang/peringkat. Pola sama dgn LudoScene (antrean animasi +
+     penanda "commit": giliran/seleksi berpindah SETELAH animasi selesai).
+   - **Online**: `OnlineController.js` + `server/rooms/HalmaRoom.js` +
+     `halmaSchema.js` (server otoritatif, validasi `move(from,to)`, kirim
+     `lastMove`+path utk animasi). 2 pemain, `filterBy(["mode"])`.
+   - GamePage: pemilih **kesulitan** (Mudah/Normal/Susah) + **jumlah pemain**
+     (2/3); win-mode (single/ranking) muncul saat 3 pemain. Registry
+     `available: true`; `gameServer.define("halma", ...)`.
+2. **Diverifikasi**: invarian papan (121 lubang, tiap rumah 10, adjacency
+   simetris) + ribuan simulasi game acak selesai tanpa loop
+   (`server/logic/halma.test.cjs`); turnamen kekuatan bot
+   (`server/logic/halma.bot.cjs`); build Vite bersih; **uji visual di browser**:
+   papan 2p & 3p, pilih pion → tujuan, gerak + bot auto-main, giliran menunggu
+   manusia, deteksi menang + overlay "main lagi". Satu-satunya error console =
+   404 aset belum ada (by design).
+
 ## Langkah berikutnya (belum dikerjakan)
 
 - [ ] **User akan menyediakan file grafis** untuk KEDUA game:
@@ -77,13 +123,20 @@ Kumpulan board game online (saat ini: Ular Tangga & Ludo, mode online & lawan bo
         — `board.png`, `char-1..4.png`, `dice.png`, `snake.png`, `ladder.png`.
       - Ludo: `app/client/public/assets/ludo/` (PANDUAN-ASET.md)
         — `board.png`, `pin-1..4.png`, `dice.png` (dadu sama formatnya).
+      - Halma: `app/client/public/assets/halma/` (PANDUAN-ASET.md)
+        — `board.png` (papan bintang) + `marble.png` (satu kelereng putih,
+        di-tint per warna oleh engine).
       Setelah ada, refresh & cek visual (titik tumpu pion, ukuran papan).
-- [ ] Aset kedua game **belum diuji dengan grafis sungguhan** (baru fallback).
+- [ ] Aset ketiga game **belum diuji dengan grafis sungguhan** (baru fallback).
 - [ ] TODO di `app/server/index.js`: endpoint Hall of Fame global
       (POST/GET `/hof`, simpan di SQLite/Postgres).
 - [ ] Ludo online >2 pemain: naikkan `maxClients` di `LudoRoom` (default 2)
       & tangani pemain keluar di tengah main (kini hanya benar untuk 2 pemain).
-- [ ] Game berikutnya di roadmap: Halma.
+- [ ] Halma online >2 pemain (kini 2; offline sudah 3) — sama: naikkan
+      `maxClients` di `HalmaRoom` + tangani pemain keluar untuk 3 pemain.
+- [ ] Mode online Halma belum diuji visual langsung (perlu 2 tab + server
+      jalan); offline lengkap teruji. Pola identik Ludo (yg sudah jalan).
+- [ ] Game berikutnya di roadmap: Hall of Fame global; lalu game papan baru.
 
 ## Hal yang perlu diketahui
 
@@ -91,6 +144,7 @@ Kumpulan board game online (saat ini: Ular Tangga & Ludo, mode online & lawan bo
   - Ular Tangga: `client/src/games/snakes-ladders/logic.js` &
     `server/logic/snakesLadders.js`.
   - Ludo: `client/src/games/ludo/logic.js` & `server/logic/ludo.js`.
+  - Halma: `client/src/games/halma/logic.js` & `server/logic/halma.js`.
   (Bot offline pakai logika client; online pakai logika server — keduanya
   harus berperilaku sama.)
 - **Pola tambah game baru**: folder `games/<id>/` berisi `logic.js`,
@@ -101,6 +155,10 @@ Kumpulan board game online (saat ini: Ular Tangga & Ludo, mode online & lawan bo
 - Ludo: koordinat papan (RING_COORDS, home column, kandang) hanya ada di
   `LudoScene.js`; `logic.js` murni angka (progress 0–56). Kotak start tiap
   warna berjarak 13 di ring 52 kotak.
+- Halma: geometri papan (121 lubang) DIBANGKITKAN di `logic.js` dari koordinat
+  kubus (bukan tabel posisi). `HalmaScene.js` memetakan q,r → pixel
+  (S=40, pusat 280,380). Bot pakai jarak ke lubang target terdekat-kosong;
+  jangan ganti ke "jarak ke apex tetap" (bikin endgame mandek — sudah dicoba).
 - PWA meng-cache semua PNG; batas total 6 MB (`vite.config.js`).
 - Warning 404 di console untuk aset yang belum ada itu normal (by design).
 - User berkomunikasi dalam Bahasa Indonesia; jika port 5173/2567 sudah

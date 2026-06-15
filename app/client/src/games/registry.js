@@ -23,6 +23,6 @@ export const GAMES = [
     icon: "⭐",
     desc: "Lompati pion dan kuasai sudut seberang papan.",
     players: "2-3",
-    available: false
+    available: true
   }
 ];

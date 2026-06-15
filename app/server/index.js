@@ -6,6 +6,7 @@ const { Server } = require("colyseus");
 const { WebSocketTransport } = require("@colyseus/ws-transport");
 const { SnakesLaddersRoom } = require("./rooms/SnakesLaddersRoom");
 const { LudoRoom } = require("./rooms/LudoRoom");
+const { HalmaRoom } = require("./rooms/HalmaRoom");
 
 const PORT = process.env.PORT || 2567;
 
@@ -28,7 +29,7 @@ const gameServer = new Server({
 gameServer.define("snakes_ladders", SnakesLaddersRoom);
 // filterBy mode: pemain online hanya dipasangkan dengan mode kemenangan sama.
 gameServer.define("ludo", LudoRoom).filterBy(["mode"]);
-// gameServer.define("halma", HalmaRoom);
+gameServer.define("halma", HalmaRoom).filterBy(["mode"]);
 
 httpServer.listen(PORT, () =>
   console.log(`Arena Papan server jalan di ws://localhost:${PORT}`)
