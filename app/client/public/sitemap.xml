@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GANTI "NAMADOMAINMU" dengan domain aslimu saat deploy (Fase A). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://NAMADOMAINMU/</loc></url>
+  <url><loc>https://NAMADOMAINMU/lobi</loc></url>
+  <url><loc>https://NAMADOMAINMU/tentang</loc></url>
+  <url><loc>https://NAMADOMAINMU/privacy</loc></url>
+  <url><loc>https://NAMADOMAINMU/hall-of-fame</loc></url>
+  <url><loc>https://NAMADOMAINMU/blog</loc></url>
+  <url><loc>https://NAMADOMAINMU/blog/cara-main-ludo</loc></url>
+  <url><loc>https://NAMADOMAINMU/blog/sejarah-halma</loc></url>
+  <url><loc>https://NAMADOMAINMU/blog/tips-ular-tangga</loc></url>
+  <url><loc>https://NAMADOMAINMU/blog/panduan-main-online</loc></url>
+</urlset>

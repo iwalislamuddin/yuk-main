@@ -414,6 +414,243 @@ a.game-card:hover {
   justify-items: center;
 }
 
+/* ---------- Footer dengan tautan ---------- */
+.footer-nav {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.footer-nav a {
+  color: #cfe3d8;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.footer-nav a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Beranda ---------- */
+.hero {
+  text-align: center;
+  padding: 28px 8px 8px;
+}
+
+.hero h1 {
+  color: var(--cream);
+  font-weight: 600;
+  font-size: 40px;
+  margin: 0 0 10px;
+  letter-spacing: 0.5px;
+}
+
+.hero-sub {
+  color: #d7e7dd;
+  max-width: 620px;
+  margin: 0 auto 22px;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cta-btn {
+  background: var(--amber);
+  color: #3b2a08;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 13px 26px;
+  border-radius: 10px;
+  border-bottom: 3px solid var(--amber-dark);
+}
+
+.cta-btn:hover {
+  transform: translateY(-2px);
+}
+
+.cta-link {
+  color: #cfe3d8;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.cta-link:hover {
+  text-decoration: underline;
+}
+
+.home-section {
+  margin-top: 38px;
+}
+
+.about-blurb {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 24px 26px;
+}
+
+.about-blurb h2 {
+  color: var(--felt-dark);
+  margin-top: 0;
+}
+
+.about-blurb p {
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
+.about-blurb a {
+  color: var(--amber-dark);
+}
+
+/* ---------- Daftar artikel (blog & beranda) ---------- */
+.blog-intro {
+  color: #cfe3d8;
+  margin: -8px 0 18px;
+  font-size: 15px;
+}
+
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.post-item {
+  display: grid;
+  gap: 4px;
+  background: var(--paper);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--ink);
+  border-bottom: 4px solid var(--amber-dark);
+  transition: transform 0.12s ease;
+}
+
+.post-item:hover {
+  transform: translateY(-2px);
+}
+
+.post-title {
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--felt-dark);
+}
+
+.post-meta {
+  font-size: 12px;
+  color: #9b8a6b;
+}
+
+.post-desc {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* ---------- Halaman artikel & teks (Tentang/Privasi) ---------- */
+.article,
+.page-text {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 30px 32px;
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+.article h1 {
+  color: var(--felt-dark);
+  font-weight: 600;
+  margin: 10px 0 4px;
+  line-height: 1.25;
+}
+
+.page-text h2 {
+  color: var(--felt-dark);
+  margin-top: 0;
+}
+
+.article-meta {
+  color: #9b8a6b;
+  font-size: 13px;
+  margin: 0 0 22px;
+}
+
+.back-link {
+  color: var(--amber-dark);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.article-body h2,
+.article-body h3,
+.page-text h3 {
+  color: var(--felt-dark);
+  margin: 26px 0 8px;
+}
+
+.article-body p,
+.page-text p {
+  margin: 0 0 14px;
+}
+
+.article-body ul,
+.article-body ol,
+.page-text ul,
+.page-text ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.article-body li,
+.page-text li {
+  margin-bottom: 6px;
+}
+
+.article-body a,
+.page-text a {
+  color: var(--amber-dark);
+}
+
+.article-body strong,
+.page-text strong {
+  color: var(--felt-dark);
+}
+
+.article-body code,
+.page-text code {
+  background: #efe6d2;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 0.92em;
+}
+
+.article-body blockquote {
+  border-left: 3px solid var(--amber);
+  margin: 0 0 14px;
+  padding: 4px 0 4px 16px;
+  color: var(--ink-soft);
+}
+
+.muted-ink {
+  color: #9b8a6b;
+  font-size: 13px;
+  margin-top: -6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

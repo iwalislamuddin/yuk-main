@@ -1,0 +1,3 @@
+# Fallback SPA untuk Cloudflare Pages / Netlify: semua rute diarahkan ke
+# index.html supaya deep-link (mis. /blog/cara-main-ludo) tidak 404 saat refresh.
+/*    /index.html   200

@@ -1,7 +1,7 @@
 # Handoff — Arena Papan
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 15 Juni 2026 (sesi 3).
+> Terakhir diperbarui: 16 Juni 2026 (sesi 4).
 
 ## Gambaran proyek
 
@@ -116,9 +116,75 @@ Kumpulan board game online (saat ini: Ular Tangga, Ludo, & Halma; mode online & 
    manusia, deteksi menang + overlay "main lagi". Satu-satunya error console =
    404 aset belum ada (by design).
 
+## Yang sudah dikerjakan (sesi 4 — 16 Juni 2026)
+
+**Fase 1 monetisasi: struktur situs publik + blog (untuk syarat AdSense).**
+Keputusan strategi: rilis pakai **free host + beli domain**, nanti bisa upgrade
+ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak boleh
+"cuma game" — harus ada konten publik yang bisa dibaca crawler tanpa login.
+
+1. **Routing dirombak** (`client/src/App.jsx`): NameGate **tidak lagi mengunci
+   seluruh aplikasi**. Halaman publik (beranda, blog, tentang, privasi, hall of
+   fame) bisa dibaca siapa pun (penting untuk SEO/AdSense). **Nama hanya diminta
+   saat masuk permainan** (`/play/:gameId`) lewat helper `requireName`. Lobi
+   (pemilih game) pindah dari `/` ke **`/lobi`**; `/` kini halaman Home publik.
+   Nav baru: Beranda · Main · Blog · Tentang · Hall of Fame. Footer dapat tautan
+   Tentang/Blog/Kebijakan Privasi. Route `*` → halaman 404.
+2. **Halaman baru** (`client/src/pages/`): `Home.jsx` (hero + grid game + blurb
+   "Tentang" + 3 artikel terbaru), `Blog.jsx` (daftar artikel), `Article.jsx`
+   (render satu artikel), `About.jsx` (Tentang), `Privacy.jsx` (Kebijakan Privasi
+   lengkap utk AdSense: data lokal/localStorage, cookie, Google AdSense + link
+   opt-out), `NotFound.jsx`.
+3. **Sistem blog tanpa backend** (`client/src/lib/blog.js`): artikel = file
+   Markdown di `client/src/content/blog/*.md` dengan frontmatter (title/date/
+   description/tags), dimuat via `import.meta.glob(..., { query:'?raw', eager })`,
+   di-render dgn **marked + dompurify** (disanitasi — penting saat nanti isi dari
+   CRUD). Helper `getPosts`/`getPost`/`renderMarkdown`/`formatTanggal`. 4 artikel
+   awal: cara-main-ludo, sejarah-halma, tips-ular-tangga, panduan-main-online.
+   **Pola tumbuh: tambah artikel = drop file .md baru** (auto muncul, terurut tgl).
+4. **SEO**: `client/src/lib/seo.js` (`useSeo(title, desc)` set `<title>`+meta per
+   halaman); `public/robots.txt` + `public/sitemap.xml` (berisi semua rute +
+   artikel); `public/_redirects` (fallback SPA Cloudflare Pages/Netlify);
+   `vite.config.js` dapat `navigateFallbackDenylist` utk robots/sitemap.
+5. **Dependency baru** di `client`: `marked`, `dompurify`.
+6. **Diverifikasi di browser** (dev 5173): beranda tampil tanpa gerbang nama,
+   artikel render Markdown (heading/bold/list), deep-link `/blog/<slug>` jalan,
+   Privasi memuat semua bagian + link opt-out Google/aboutads — nol error konsol;
+   `vite build` bersih (140 modul).
+
+> **PENTING utk Fase A (deploy):** ganti placeholder **`NAMADOMAINMU`** dengan
+> domain asli di `public/robots.txt`, `public/sitemap.xml`, `pages/About.jsx`,
+> `pages/Privacy.jsx`; dan ganti **email kontak** (`kontak@NAMADOMAINMU`) di
+> About + Privacy. Sebelum ajukan AdSense (Fase 3): situs sudah live di domain +
+> ada sedikit trafik.
+
+## Peta fase rilis (monetisasi + online)
+
+- [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
+      untuk syarat AdSense; NameGate tak lagi memblokir crawler.
+- [ ] **Fase A — Deploy** (BERIKUTNYA): server `wss://` (Render) + client
+      (Cloudflare Pages, boleh komersial) + pasang **domain**. Ganti semua
+      placeholder `NAMADOMAINMU` + email kontak. Set `VITE_SERVER_URL=wss://...`.
+      Lihat detail di sub-bagian "Online multiplayer" di bawah.
+- [ ] **Fase 3 — Ajukan AdSense**: setelah live di domain + ada sedikit trafik;
+      isi `VITE_ADSENSE_CLIENT`. (Game minim teks bisa ditolak — konten blog +
+      Privacy + Tentang dibuat justru untuk ini.)
+- [ ] **Fase C — CRUD + admin panel** artikel (perlu DB + auth; sengaja ditunda).
+      Sekarang artikel = file `.md` di repo. Saat naik ke CRUD, cukup ganti
+      sumber data di `client/src/lib/blog.js` tanpa ubah halaman.
+
+## Kebijakan grafis (KEPUTUSAN — 15 Juni 2026)
+
+> **Mulai sekarang: dukungan grafis untuk SEMUA game (Ular Tangga, Ludo, Halma)
+> ditunda ke POST-PRODUCTION (versi 2.0 ke atas).** Sampai 2.0, ketiga game jalan
+> dengan fallback vektor — itu memang kondisi rilis yang diharapkan, bukan
+> kekurangan. Jangan jadikan grafis sebagai blocker untuk fitur lain (mis. online
+> multiplayer). Manifest aset + PANDUAN-ASET.md + fallback sudah siap menanti file
+> grafis nanti; tidak perlu disentuh sampai fase 2.0.
+
 ## Langkah berikutnya (belum dikerjakan)
 
-- [ ] **User akan menyediakan file grafis** untuk KEDUA game:
+- [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA):
       - Ular Tangga: `app/client/public/assets/snakes-ladders/` (PANDUAN-ASET.md)
         — `board.png`, `char-1..4.png`, `dice.png`, `snake.png`, `ladder.png`.
       - Ludo: `app/client/public/assets/ludo/` (PANDUAN-ASET.md)
@@ -126,17 +192,31 @@ Kumpulan board game online (saat ini: Ular Tangga, Ludo, & Halma; mode online & 
       - Halma: `app/client/public/assets/halma/` (PANDUAN-ASET.md)
         — `board.png` (papan bintang) + `marble.png` (satu kelereng putih,
         di-tint per warna oleh engine).
-      Setelah ada, refresh & cek visual (titik tumpu pion, ukuran papan).
-- [ ] Aset ketiga game **belum diuji dengan grafis sungguhan** (baru fallback).
-- [ ] TODO di `app/server/index.js`: endpoint Hall of Fame global
-      (POST/GET `/hof`, simpan di SQLite/Postgres).
-- [ ] Ludo online >2 pemain: naikkan `maxClients` di `LudoRoom` (default 2)
-      & tangani pemain keluar di tengah main (kini hanya benar untuk 2 pemain).
-- [ ] Halma online >2 pemain (kini 2; offline sudah 3) — sama: naikkan
-      `maxClients` di `HalmaRoom` + tangani pemain keluar untuk 3 pemain.
-- [ ] Mode online Halma belum diuji visual langsung (perlu 2 tab + server
-      jalan); offline lengkap teruji. Pola identik Ludo (yg sudah jalan).
-- [ ] Game berikutnya di roadmap: Hall of Fame global; lalu game papan baru.
+      Setelah ada (nanti di 2.0), refresh & cek visual (titik tumpu pion, ukuran papan).
+
+### Online multiplayer (FOKUS BERIKUTNYA — fondasi sudah jalan, 2 pemain lokal)
+
+> Status: ketiga game SUDAH bisa online 2 pemain di localhost (server otoritatif
+> Colyseus). Urut prioritas agar benar-benar bisa dimainkan lintas perangkat:
+
+- [ ] **Deploy server publik + TLS** (blocker utama untuk main lintas internet):
+      kini cuma `ws://localhost:2567`. Host `app/server` (Render/Railway/Fly),
+      lalu set `VITE_SERVER_URL=wss://<domain>` saat build client. Pastikan
+      `wss://` (bukan `ws://`) karena client di-host HTTPS.
+- [ ] Reconnect: kini pemain putus = lawan otomatis menang (`onLeave`). Pakai
+      `allowReconnection()` Colyseus + jeda grace agar refresh/sinyal jelek tak
+      langsung kalah.
+- [ ] Room privat / kode-undang teman: kini auto-matchmaking (`joinOrCreate`).
+      Tambah opsi buat-room berkode supaya bisa main dgn teman tertentu.
+- [ ] Online >2 pemain: Ludo (4) & Halma (3) — naikkan `maxClients`
+      (`LudoRoom`/`HalmaRoom`, default 2) + tangani pemain keluar di tengah main
+      (kini `onLeave` hanya benar untuk 2 pemain).
+- [ ] Uji visual Halma online (2 tab + server jalan); offline lengkap teruji,
+      pola identik Ludo (yg sudah jalan).
+- [ ] Hall of Fame global: endpoint `POST/GET /hof` di `app/server/index.js`
+      (TODO sudah ada), simpan di SQLite/Postgres, leaderboard lintas perangkat.
+
+- [ ] Game berikutnya di roadmap: setelah online matang, game papan baru.
 
 ## Hal yang perlu diketahui
 

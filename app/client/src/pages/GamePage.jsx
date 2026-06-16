@@ -31,14 +31,14 @@ export default function GamePage({ playerName }) {
   if (!game) {
     return (
       <div className="empty">
-        Permainan tidak ditemukan. <Link to="/">Kembali ke lobi</Link>
+        Permainan tidak ditemukan. <Link to="/lobi">Kembali ke lobi</Link>
       </div>
     );
   }
   if (!game.available) {
     return (
       <div className="empty">
-        {game.name} segera hadir! <Link to="/">Kembali ke lobi</Link>
+        {game.name} segera hadir! <Link to="/lobi">Kembali ke lobi</Link>
       </div>
     );
   }
