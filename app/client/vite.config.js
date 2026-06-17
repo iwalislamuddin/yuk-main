@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["pwa-192.png", "pwa-512.png"],
       manifest: {
-        name: "Arena Papan",
-        short_name: "ArenaPapan",
+        name: "Yuk Main",
+        short_name: "YukMain",
         description:
           "Kumpulan board game: Ular Tangga, Ludo, Halma. Main online atau lawan bot.",
         lang: "id",

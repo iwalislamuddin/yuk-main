@@ -28,4 +28,4 @@ Lompatan berantai inilah jantung strategi Halma. Pemain yang jeli sering membang
 - **Hindari meninggalkan pion.** Satu pion yang tertinggal di belakang bisa memperlambat seluruh strategimu di akhir permainan.
 - **Manfaatkan pion lawan.** Pion lawan pun bisa dilompati, jadi posisi mereka kadang justru menguntungkanmu.
 
-Di Arena Papan, Halma bisa dimainkan melawan bot dengan tiga tingkat kesulitan, atau online melawan pemain lain. Bot tingkat "Susah" akan menyusun lompatan berantai dan berpikir satu langkah ke depan — tantangan yang bagus untuk mengasah strategimu.
+Di Yuk Main, Halma bisa dimainkan melawan bot dengan tiga tingkat kesulitan, atau online melawan pemain lain. Bot tingkat "Susah" akan menyusun lompatan berantai dan berpikir satu langkah ke depan — tantangan yang bagus untuk mengasah strategimu.

@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <div className="home">
       <section className="hero">
-        <h1>Arena Papan</h1>
+        <h1>Yuk Main</h1>
         <p className="hero-sub">
           Kumpulan board game klasik yang bisa kamu mainkan langsung di browser —
           <strong> online bersama teman</strong> atau <strong>melawan bot</strong>.
@@ -37,9 +37,9 @@ export default function Home() {
       </section>
 
       <section className="home-section about-blurb">
-        <h2>Tentang Arena Papan</h2>
+        <h2>Tentang Yuk Main</h2>
         <p>
-          Arena Papan adalah platform permainan papan ringan yang berjalan di
+          Yuk Main adalah platform permainan papan ringan yang berjalan di
           dalam peramban. Kami menghadirkan permainan keluarga yang familiar —
           Ular Tangga, Ludo, dan Halma — dengan kontrol sederhana dan papan yang
           mudah dibaca, sehingga nyaman dimainkan baik di ponsel maupun komputer.

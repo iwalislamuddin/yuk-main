@@ -33,4 +33,4 @@ Berbeda dengan catur atau Halma, Ular Tangga sepenuhnya bergantung pada **keberu
 - Beberapa papan klasik sengaja menaruh ular besar di dekat kotak 100 untuk menambah ketegangan menjelang garis akhir.
 - Karena murni keberuntungan, Ular Tangga sering dipakai untuk mengajarkan anak berhitung dan mengenal angka 1–100.
 
-Di Arena Papan, kamu bisa memainkan Ular Tangga melawan bot atau bersama teman secara online. Animasi dadu dan luncuran ular membuatnya terasa hidup, walau hasil akhirnya tetap di tangan keberuntungan.
+Di Yuk Main, kamu bisa memainkan Ular Tangga melawan bot atau bersama teman secara online. Animasi dadu dan luncuran ular membuatnya terasa hidup, walau hasil akhirnya tetap di tangan keberuntungan.

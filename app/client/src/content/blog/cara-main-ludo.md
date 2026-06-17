@@ -27,4 +27,4 @@ Setiap pemain memilih satu warna dan menempatkan empat pionnya di **kandang** (a
 - Manfaatkan kotak aman sebagai tempat "parkir" saat lawan mengincar pionmu.
 - Hitung jarak sebelum memakan: memakan pion lawan memang memuaskan, tapi kadang membuat pionmu sendiri rawan dimakan balik.
 
-Di Arena Papan kamu bisa mencoba Ludo melawan bot untuk berlatih, atau bermain online bersama teman. Mode peringkat juga tersedia kalau kamu ingin melanjutkan permainan sampai semua pemain selesai, bukan berhenti di pemenang pertama.
+Di Yuk Main kamu bisa mencoba Ludo melawan bot untuk berlatih, atau bermain online bersama teman. Mode peringkat juga tersedia kalau kamu ingin melanjutkan permainan sampai semua pemain selesai, bukan berhenti di pemenang pertama.

@@ -14,7 +14,7 @@ export default function Blog() {
     <div className="blog">
       <h2>Blog</h2>
       <p className="blog-intro">
-        Panduan, sejarah, dan tips seputar permainan papan yang ada di Arena Papan.
+        Panduan, sejarah, dan tips seputar permainan papan yang ada di Yuk Main.
       </p>
 
       {posts.length === 0 ? (

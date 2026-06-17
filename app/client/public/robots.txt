@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# GANTI "NAMADOMAINMU" dengan domain aslimu saat deploy (Fase A).
-Sitemap: https://NAMADOMAINMU/sitemap.xml
+Sitemap: https://yuk-main.web.id/sitemap.xml

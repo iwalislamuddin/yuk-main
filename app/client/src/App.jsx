@@ -26,7 +26,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <header className="topbar">
-        <Link to="/" className="brand">Arena Papan</Link>
+        <Link to="/" className="brand">Yuk Main</Link>
         <nav>
           <NavLink to="/" end>Beranda</NavLink>
           <NavLink to="/lobi">Main</NavLink>
@@ -66,7 +66,7 @@ export default function App() {
           <Link to="/blog">Blog</Link>
           <Link to="/privacy">Kebijakan Privasi</Link>
         </nav>
-        <p>© 2026 Arena Papan · React + Phaser + Colyseus · PWA</p>
+        <p>© 2026 Yuk Main · React + Phaser + Colyseus · PWA</p>
       </footer>
     </BrowserRouter>
   );

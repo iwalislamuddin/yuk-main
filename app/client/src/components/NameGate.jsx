@@ -19,7 +19,7 @@ export default function NameGate({ onDone }) {
         <div className="dice-logo" aria-hidden="true">
           <span /><span /><span /><span /><span />
         </div>
-        <h1>Arena Papan</h1>
+        <h1>Yuk Main</h1>
         <p>Ular Tangga · Ludo · Halma. Main online atau lawan bot.</p>
         <form onSubmit={submit}>
           <input

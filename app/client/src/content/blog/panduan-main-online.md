@@ -1,11 +1,11 @@
 ---
-title: Main Bareng Teman Secara Online di Arena Papan
+title: Main Bareng Teman Secara Online di Yuk Main
 date: 2026-06-16
-description: Cara kerja mode online Arena Papan, bedanya dengan lawan bot, dan tips agar permainan lancar di koneksi seluler.
+description: Cara kerja mode online Yuk Main, bedanya dengan lawan bot, dan tips agar permainan lancar di koneksi seluler.
 tags: online, multiplayer, panduan
 ---
 
-Salah satu hal yang membuat board game menyenangkan adalah kebersamaannya. Di Arena Papan, kamu tidak harus berada di ruangan yang sama untuk bermain — semua permainan bisa dimainkan **online** melawan pemain lain dari perangkat berbeda.
+Salah satu hal yang membuat board game menyenangkan adalah kebersamaannya. Di Yuk Main, kamu tidak harus berada di ruangan yang sama untuk bermain — semua permainan bisa dimainkan **online** melawan pemain lain dari perangkat berbeda.
 
 ## Lawan bot vs main online
 
@@ -26,4 +26,4 @@ Pada mode online, **server yang menjadi sumber kebenaran**. Dadu dilempar di ser
 
 ## Yang sedang kami kembangkan
 
-Mode online Arena Papan terus disempurnakan. Beberapa hal yang sedang kami siapkan: dukungan lebih dari dua pemain untuk Ludo dan Halma, kemampuan menyambung ulang ketika koneksi sempat terputus, serta ruang permainan privat agar kamu bisa mengundang teman tertentu. Pantau terus halaman blog ini untuk kabar terbarunya.
+Mode online Yuk Main terus disempurnakan. Beberapa hal yang sedang kami siapkan: dukungan lebih dari dua pemain untuk Ludo dan Halma, kemampuan menyambung ulang ketika koneksi sempat terputus, serta ruang permainan privat agar kamu bisa mengundang teman tertentu. Pantau terus halaman blog ini untuk kabar terbarunya.

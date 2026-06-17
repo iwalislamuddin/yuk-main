@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom";
 import { useSeo } from "../lib/seo.js";
 
-// CATATAN: sebelum mengajukan AdSense, ganti "NAMADOMAINMU" dan alamat email
-// kontak dengan domain serta email aslimu (lihat juga halaman Tentang).
 export default function Privacy() {
   useSeo(
     "Kebijakan Privasi",
-    "Kebijakan privasi Arena Papan: data yang kami simpan, penggunaan cookie, dan iklan pihak ketiga."
+    "Kebijakan privasi Yuk Main: data yang kami simpan, penggunaan cookie, dan iklan pihak ketiga."
   );
 
   return (
@@ -15,14 +13,14 @@ export default function Privacy() {
       <p className="muted-ink">Terakhir diperbarui: 16 Juni 2026</p>
 
       <p>
-        Halaman ini menjelaskan bagaimana Arena Papan ("kami") memperlakukan
+        Halaman ini menjelaskan bagaimana Yuk Main ("kami") memperlakukan
         informasi saat kamu menggunakan situs ini. Dengan menggunakan Arena
         Papan, kamu menyetujui praktik yang dijelaskan di bawah ini.
       </p>
 
       <h3>Data yang kami simpan</h3>
       <p>
-        Arena Papan tidak meminta pendaftaran akun dan tidak mengumpulkan data
+        Yuk Main tidak meminta pendaftaran akun dan tidak mengumpulkan data
         pribadi seperti nama asli, alamat, atau nomor telepon. Nama pemain yang
         kamu masukkan dan riwayat kemenangan untuk papan "Hall of Fame" disimpan
         secara <strong>lokal di perangkatmu</strong> (melalui <em>localStorage</em>{" "}
@@ -79,7 +77,7 @@ export default function Privacy() {
 
       <h3>Privasi anak</h3>
       <p>
-        Arena Papan ditujukan untuk khalayak umum dan tidak secara sengaja
+        Yuk Main ditujukan untuk khalayak umum dan tidak secara sengaja
         mengumpulkan data pribadi dari anak-anak.
       </p>
 
@@ -92,7 +90,7 @@ export default function Privacy() {
       <h3>Kontak</h3>
       <p>
         Jika ada pertanyaan tentang kebijakan privasi ini, hubungi kami di{" "}
-        <a href="mailto:kontak@NAMADOMAINMU">kontak@NAMADOMAINMU</a>.
+        <a href="mailto:kontak@yuk-main.web.id">kontak@yuk-main.web.id</a>.
       </p>
 
       <p>

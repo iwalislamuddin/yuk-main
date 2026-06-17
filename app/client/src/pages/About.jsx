@@ -3,16 +3,16 @@ import { useSeo } from "../lib/seo.js";
 
 export default function About() {
   useSeo(
-    "Tentang Arena Papan",
-    "Apa itu Arena Papan, permainan apa saja yang tersedia, dan bagaimana cara memainkannya."
+    "Tentang Yuk Main",
+    "Apa itu Yuk Main, permainan apa saja yang tersedia, dan bagaimana cara memainkannya."
   );
 
   return (
     <div className="page-text">
-      <h2>Tentang Arena Papan</h2>
+      <h2>Tentang Yuk Main</h2>
 
       <p>
-        Arena Papan adalah platform permainan papan (board game) yang berjalan
+        Yuk Main adalah platform permainan papan (board game) yang berjalan
         langsung di peramban. Tujuan kami sederhana: menghadirkan permainan
         keluarga yang familiar dengan cara yang ringan, gratis, dan mudah diakses
         dari mana saja — tanpa perlu memasang aplikasi.
@@ -45,7 +45,7 @@ export default function About() {
 
       <h3>Bagaimana ini dibiayai</h3>
       <p>
-        Arena Papan gratis untuk dimainkan. Agar tetap bisa berjalan, sebagian
+        Yuk Main gratis untuk dimainkan. Agar tetap bisa berjalan, sebagian
         halaman menampilkan iklan dari pihak ketiga. Penjelasan mengenai data dan
         cookie dapat kamu baca di <Link to="/privacy">Kebijakan Privasi</Link>.
       </p>
@@ -53,7 +53,7 @@ export default function About() {
       <h3>Kontak</h3>
       <p>
         Ada masukan, laporan bug, atau pertanyaan? Hubungi kami di{" "}
-        <a href="mailto:kontak@NAMADOMAINMU">kontak@NAMADOMAINMU</a>.
+        <a href="mailto:kontak@yuk-main.web.id">kontak@yuk-main.web.id</a>.
       </p>
     </div>
   );

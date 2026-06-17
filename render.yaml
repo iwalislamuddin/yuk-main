@@ -1,0 +1,21 @@
+# Blueprint Render untuk server multiplayer Colyseus (Yuk Main).
+# Cara pakai: Render Dashboard -> New -> Blueprint -> pilih repo ini.
+# Render membaca file ini dan membuat service-nya otomatis.
+#
+# Catatan free tier: service "tidur" setelah ~15 menit idle; permintaan
+# pertama setelah tidur butuh ~50 detik untuk bangun. Untuk selalu hidup,
+# ganti `plan: free` menjadi `plan: starter` (berbayar).
+services:
+  - type: web
+    name: yuk-main-server
+    runtime: node
+    rootDir: app/server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # PORT diisi otomatis oleh Render; index.js sudah membaca process.env.PORT.

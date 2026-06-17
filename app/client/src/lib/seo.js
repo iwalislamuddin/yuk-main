@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const BASE = "Arena Papan";
+const BASE = "Yuk Main";
 
 // Set <title> + <meta name="description"> per halaman. Untuk SPA, crawler modern
 // (termasuk Google/AdSense) menjalankan JS, jadi judul dinamis tetap terbaca.
