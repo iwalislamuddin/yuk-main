@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://yuk-main.web.id/sitemap.xml
+Sitemap: https://yukmain.web.id/sitemap.xml

@@ -2,7 +2,7 @@
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
 > Terakhir diperbarui: 17 Juni 2026 (sesi 5).
-> Brand: **Yuk Main** (yuk-main.web.id). Nama lama "Arena Papan" hanya tersisa di
+> Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
 ## Gambaran proyek
@@ -154,8 +154,8 @@ ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak bole
    Privasi memuat semua bagian + link opt-out Google/aboutads — nol error konsol;
    `vite build` bersih (140 modul).
 
-> **(SELESAI di sesi 5):** placeholder `NAMADOMAINMU` → `yuk-main.web.id` dan email
-> `kontak@NAMADOMAINMU` → `kontak@yuk-main.web.id` sudah diganti di robots/sitemap/
+> **(SELESAI di sesi 5):** placeholder `NAMADOMAINMU` → `yukmain.web.id` dan email
+> `kontak@NAMADOMAINMU` → `kontak@yukmain.web.id` sudah diganti di robots/sitemap/
 > About/Privacy. Sebelum ajukan AdSense (Fase 3): situs sudah live di domain +
 > ada sedikit trafik.
 
@@ -168,7 +168,7 @@ ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak bole
    (BASE judul), `pages/` (Home/About/Blog/Privacy), `vite.config.js` manifest
    PWA (`name`/`short_name`), dan 4 artikel blog `.md`. ID/paket internal
    (`arena-papan`) sengaja dibiarkan agar tidak ada yang rusak.
-2. **Domain diisi**: `NAMADOMAINMU` → `yuk-main.web.id`, email → `kontak@yuk-main.web.id`.
+2. **Domain diisi**: `NAMADOMAINMU` → `yukmain.web.id`, email → `kontak@yukmain.web.id`.
    `robots.txt` & `sitemap.xml` ditulis ulang bersih (komentar placeholder dibuang).
 3. **Konfigurasi deploy dibuat**:
    - `DEPLOY.md` (root): panduan lengkap CF Pages + Render + custom domain
@@ -181,7 +181,7 @@ ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak bole
    transien saat bulk-edit (build bersih membuktikan tak ada syntax error).
 
 **Keputusan host (sesi ini):** client → **Cloudflare Pages**; server → Render.
-Domain **`yuk-main.web.id` SUDAH DIBELI di Domainesia** (rencana semula
+Domain **`yukmain.web.id` SUDAH DIBELI di Domainesia** (rencana semula
 `yukmain.com` tak tersedia). Karena `.web.id`, CF Registrar tak berlaku —
 sambungkan via nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara A).
 
@@ -190,7 +190,7 @@ sambungkan via nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara 
 - [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
       untuk syarat AdSense; NameGate tak lagi memblokir crawler.
 - [~] **Fase A — Deploy** (SEDANG BERJALAN): rebrand + isi domain + config deploy
-      **selesai**, domain `yuk-main.web.id` **sudah dibeli** (sesi 5; lihat
+      **selesai**, domain `yukmain.web.id` **sudah dibeli** (sesi 5; lihat
       `DEPLOY.md`). **Sisa:** buat project CF Pages + service Render, sambungkan
       custom domain (nameserver Domainesia→Cloudflare), set `VITE_SERVER_URL=wss://...`.
 - [ ] **Fase 3 — Ajukan AdSense**: setelah live di domain + ada sedikit trafik;
