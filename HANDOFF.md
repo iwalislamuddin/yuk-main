@@ -1,7 +1,7 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 17 Juni 2026 (sesi 5).
+> Terakhir diperbarui: 18 Juni 2026 (sesi 5 — deploy SELESAI & LIVE di yukmain.web.id).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
@@ -175,24 +175,40 @@ ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak bole
      (jalur Cloudflare Registrar vs Domainesia) + checklist AdSense.
    - `render.yaml` (root): blueprint server Colyseus (rootDir `app/server`,
      health `/health`, free tier — catatan cold-start ~50 dtk).
-   - `app/.nvmrc` = 20; `app/client/.env.example` diperbarui (hint wss:// produksi).
-4. **Diverifikasi**: `vite build` bersih (140 modul); preview live menampilkan
-   brand "Yuk Main" di judul/header/hero/footer/blog — error konsol hanya HMR
-   transien saat bulk-edit (build bersih membuktikan tak ada syntax error).
+   - `app/.nvmrc` = 22; `app/client/.env.example` diperbarui (hint wss:// produksi).
+4. **Diverifikasi (kode)**: `vite build` bersih (140 modul); preview live brand
+   "Yuk Main" benar.
+5. **Deploy DIEKSEKUSI & LIVE** (lanjutan sesi 5):
+   - **Client → Cloudflare Pages**: preset None, root dir `app`, build
+     `npm install && npm run build`, output `client/dist`. Node Cloudflare = **22**.
+   - **Server → Render** (blueprint `render.yaml`) → `wss://yuk-main-server.onrender.com`
+     (free tier — cold-start ~50 dtk pada koneksi pertama setelah idle).
+   - **Custom domain `yukmain.web.id`** tersambung (nameserver Domainesia → Cloudflare).
+   - `VITE_SERVER_URL = wss://yuk-main-server.onrender.com` di-set di env Pages,
+     lalu **Retry deployment** (WAJIB: Vite suntik `VITE_*` saat build).
+   - **Diuji end-to-end: online Ular Tangga 2 pemain tuntas sampai selesai.**
+     Situs + server dua-duanya hidup. 🎉 **Fase A selesai.**
 
-**Keputusan host (sesi ini):** client → **Cloudflare Pages**; server → Render.
-Domain **`yukmain.web.id` SUDAH DIBELI di Domainesia** (rencana semula
-`yukmain.com` tak tersedia). Karena `.web.id`, CF Registrar tak berlaku —
-sambungkan via nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara A).
+   > **Dua jebakan deploy (catat agar tak terulang):**
+   > 1. Project Cloudflare WAJIB **Pages**, BUKAN Workers — Workers jalankan
+   >    `npx wrangler deploy` lalu gagal *"Wrangler application detection ... root
+   >    of a workspace"* (repo monorepo npm workspaces).
+   > 2. *"This project is disconnected from your Git account"* + URL tak terbuka →
+   >    **grant akses repo di GitHub App** (github.com/settings/installations →
+   >    Cloudflare Pages → Configure → centang repo `yuk-main`).
+
+**Host final:** client = Cloudflare Pages di `yukmain.web.id`; server = Render di
+`yuk-main-server.onrender.com`. Domain dibeli di Domainesia; `.web.id` tak dijual
+CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara A).
 
 ## Peta fase rilis (monetisasi + online)
 
 - [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
       untuk syarat AdSense; NameGate tak lagi memblokir crawler.
-- [~] **Fase A — Deploy** (SEDANG BERJALAN): rebrand + isi domain + config deploy
-      **selesai**, domain `yukmain.web.id` **sudah dibeli** (sesi 5; lihat
-      `DEPLOY.md`). **Sisa:** buat project CF Pages + service Render, sambungkan
-      custom domain (nameserver Domainesia→Cloudflare), set `VITE_SERVER_URL=wss://...`.
+- [x] **Fase A — Deploy** (sesi 5, **SELESAI & LIVE**): client di Cloudflare Pages
+      + custom domain `yukmain.web.id`; server Colyseus di Render
+      (`wss://yuk-main-server.onrender.com`); `VITE_SERVER_URL` di-set. Online
+      Ular Tangga 2 pemain teruji end-to-end. Detail + jebakan: `DEPLOY.md` & sesi 5.
 - [ ] **Fase 3 — Ajukan AdSense**: setelah live di domain + ada sedikit trafik;
       isi `VITE_ADSENSE_CLIENT`. (Game minim teks bisa ditolak — konten blog +
       Privacy + Tentang dibuat justru untuk ini.)
@@ -211,7 +227,21 @@ sambungkan via nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara 
 
 ## Langkah berikutnya (belum dikerjakan)
 
-- [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA):
+### Prioritas sesi 6 (ditetapkan user di akhir sesi 5)
+1. **Polish UI** — rapikan tampilan secara umum.
+2. **Perbaikan gameflow Ular Tangga** — ada alur kecil yang mau dibetulkan
+   (detail spesifik akan diberikan user saat sesi 6).
+3. **Hall of Fame** — kembangkan (kini baru lokal per-perangkat di
+   `pages/HallOfFame.jsx`; lihat item "Hall of Fame global" di bawah).
+4. **Online >2 pemain** — Ludo (4) & Halma (3); lihat item di bawah.
+5. **Dukungan grafis — MULAI dari DADU.** User akan menyediakan `dice.png` lebih
+   dulu → ini melonggarkan kebijakan "grafis ditunda v2.0": grafis dimulai
+   bertahap, dadu duluan. Taruh di `app/client/public/assets/snakes-ladders/dice.png`
+   (format di `PANDUAN-ASET.md`); engine sudah punya fallback, jadi tinggal pasang
+   file + cek visual. Format dadu sama bisa dipakai ulang untuk Ludo.
+
+- [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA, kecuali
+      **dadu** yang dimulai sesi 6):
       - Ular Tangga: `app/client/public/assets/snakes-ladders/` (PANDUAN-ASET.md)
         — `board.png`, `char-1..4.png`, `dice.png`, `snake.png`, `ladder.png`.
       - Ludo: `app/client/public/assets/ludo/` (PANDUAN-ASET.md)
@@ -221,15 +251,14 @@ sambungkan via nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara 
         di-tint per warna oleh engine).
       Setelah ada (nanti di 2.0), refresh & cek visual (titik tumpu pion, ukuran papan).
 
-### Online multiplayer (FOKUS BERIKUTNYA — fondasi sudah jalan, 2 pemain lokal)
+### Online multiplayer (LIVE 2 pemain lintas internet; lanjutan: skala & ketahanan)
 
-> Status: ketiga game SUDAH bisa online 2 pemain di localhost (server otoritatif
-> Colyseus). Urut prioritas agar benar-benar bisa dimainkan lintas perangkat:
+> Status: ketiga game online 2 pemain, **sudah LIVE lintas internet** (server
+> Render, Ular Tangga 2 pemain teruji end-to-end). Lanjutan pengembangan:
 
-- [ ] **Deploy server publik + TLS** (blocker utama untuk main lintas internet):
-      kini cuma `ws://localhost:2567`. Host `app/server` (Render/Railway/Fly),
-      lalu set `VITE_SERVER_URL=wss://<domain>` saat build client. Pastikan
-      `wss://` (bukan `ws://`) karena client di-host HTTPS.
+- [x] **Deploy server publik + TLS — SELESAI (sesi 5).** Server di Render
+      (`wss://yuk-main-server.onrender.com`), `VITE_SERVER_URL` di-set di Pages,
+      client HTTPS → `wss://`. Online lintas internet jalan.
 - [ ] Reconnect: kini pemain putus = lawan otomatis menang (`onLeave`). Pakai
       `allowReconnection()` Colyseus + jeda grace agar refresh/sinyal jelek tak
       langsung kalah.
