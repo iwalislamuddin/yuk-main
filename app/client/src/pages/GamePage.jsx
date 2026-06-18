@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { GAMES } from "../games/registry.js";
 import { recordResult } from "../lib/storage.js";
 import { postBotResult } from "../lib/hofApi.js";
@@ -23,8 +23,13 @@ const DIFFICULTIES = [
 
 export default function GamePage({ playerName }) {
   const { gameId } = useParams();
-  const [mode, setMode] = useState(null); // null | "bot" | "online"
-  const [winMode, setWinMode] = useState("single"); // single | ranking
+  const [searchParams] = useSearchParams();
+  // Datang dari tombol "Gabung" di lobi: ?online=1&wm=<mode> -> langsung online.
+  const autoOnline = searchParams.get("online") === "1";
+  const [mode, setMode] = useState(autoOnline ? "online" : null); // null | "bot" | "online"
+  const [winMode, setWinMode] = useState(
+    searchParams.get("wm") === "ranking" ? "ranking" : "single"
+  ); // single | ranking
   const [difficulty, setDifficulty] = useState("normal"); // easy | normal | hard (Halma)
   const [playerCount, setPlayerCount] = useState(2); // 2 | 3 (Halma, lawan bot)
   const game = GAMES.find((g) => g.id === gameId);

@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
 
-export default function GameCard({ game }) {
+export default function GameCard({ game, waiting = 0 }) {
   const body = (
     <>
+      {waiting > 0 && (
+        <span className="waiting-badge" title="Ada pemain sedang menunggu lawan">
+          🟢 {waiting} menunggu
+        </span>
+      )}
       <span className="game-icon" aria-hidden="true">{game.icon}</span>
       <h3>{game.name}</h3>
       <p>{game.desc}</p>

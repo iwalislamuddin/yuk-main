@@ -4,6 +4,7 @@ import GameCard from "../components/GameCard.jsx";
 import AdSlot from "../components/AdSlot.jsx";
 import { getPosts, formatTanggal } from "../lib/blog.js";
 import { useSeo } from "../lib/seo.js";
+import { useLobby } from "../lib/lobbyApi.js";
 
 export default function Home() {
   useSeo(
@@ -11,6 +12,9 @@ export default function Home() {
     "Mainkan Ular Tangga, Ludo, dan Halma secara online atau melawan bot. Gratis, langsung di browser, tanpa pasang aplikasi."
   );
   const posts = getPosts().slice(0, 3);
+  const { data: lobby } = useLobby();
+  const online = lobby?.online || 0;
+  const waitingByGame = lobby?.waitingByGame || {};
 
   return (
     <div className="home">
@@ -25,13 +29,18 @@ export default function Home() {
           <Link to="/lobi" className="cta-btn">Mulai bermain</Link>
           <Link to="/tentang" className="cta-link">Pelajari dulu</Link>
         </div>
+        {online > 0 && (
+          <p className="online-count" title="Pemain yang sedang tersambung & siap bermain online">
+            🟢 {online} pemain sedang online
+          </p>
+        )}
       </section>
 
       <section className="home-section">
         <h2>Pilih permainan</h2>
         <div className="game-grid">
           {GAMES.map((g) => (
-            <GameCard key={g.id} game={g} />
+            <GameCard key={g.id} game={g} waiting={waitingByGame[g.id] || 0} />
           ))}
         </div>
       </section>

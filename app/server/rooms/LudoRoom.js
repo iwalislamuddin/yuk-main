@@ -16,6 +16,7 @@ class LudoRoom extends Room {
   onCreate(options) {
     this.maxClients = 2;
     const mode = options?.mode === "ranking" ? "ranking" : "single";
+    this.gameMode = mode;
     this.logic = Ludo.createState(mode);
     this.setState(new LudoState());
 
@@ -42,6 +43,14 @@ class LudoRoom extends Room {
       name: String(options?.name || "Pemain").slice(0, 16),
       isBot: false
     });
+    // Metadata untuk lobi (GET /lobby): host = pemain pertama.
+    if (this.logic.players.length === 1) {
+      this.setMetadata({
+        gameId: "ludo",
+        host: this.logic.players[0].name,
+        mode: this.gameMode
+      });
+    }
     if (this.logic.players.length >= this.maxClients) {
       Ludo.startGame(this.logic);
       this.lock();

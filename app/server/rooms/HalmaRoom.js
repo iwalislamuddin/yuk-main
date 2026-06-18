@@ -12,6 +12,7 @@ class HalmaRoom extends Room {
   onCreate(options) {
     this.maxClients = 2;
     const mode = options?.mode === "ranking" ? "ranking" : "single";
+    this.gameMode = mode;
     this.logic = Halma.createState(mode, 2);
     this.setState(new HalmaState());
 
@@ -33,6 +34,14 @@ class HalmaRoom extends Room {
       name: String(options?.name || "Pemain").slice(0, 16),
       isBot: false
     });
+    // Metadata untuk lobi (GET /lobby): host = pemain pertama.
+    if (this.logic.players.length === 1) {
+      this.setMetadata({
+        gameId: "halma",
+        host: this.logic.players[0].name,
+        mode: this.gameMode
+      });
+    }
     if (this.logic.players.length >= this.maxClients) {
       Halma.startGame(this.logic);
       this.lock();

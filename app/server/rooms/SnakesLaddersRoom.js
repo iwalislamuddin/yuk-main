@@ -24,6 +24,11 @@ class SnakesLaddersRoom extends Room {
     this.state.players.set(client.sessionId, player);
     this.turnOrder.push(client.sessionId);
 
+    // Metadata untuk lobi (GET /lobby): host = pemain pertama.
+    if (this.turnOrder.length === 1) {
+      this.setMetadata({ gameId: "ular-tangga", host: player.name, mode: "single" });
+    }
+
     if (this.turnOrder.length >= this.maxClients) this.startGame();
   }
 

@@ -268,6 +268,42 @@ CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian 
       Sekarang artikel = file `.md` di repo. Saat naik ke CRUD, cukup ganti
       sumber data di `client/src/lib/blog.js` tanpa ubah halaman.
 
+## Konsep Online Multiplayer (KEPUTUSAN — sesi 7, 18 Juni 2026)
+
+Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
+(B1 → B2 → B3). **Keputusan terkunci** (hasil diskusi dgn user):
+
+1. **Discovery** = **daftar room menunggu di `/lobi`** + **badge "🟢 N menunggu"**
+   di kartu game. BUKAN popup Y/N (mengganggu & tak scalable bila banyak room).
+2. **Presence** = **hitungan online global** di homepage, dijaga **keep-alive cron**
+   (~10 mnt ping `/health`) supaya server Render tak tidur → angka selalu nyata.
+3. **Bot-fill** (game >2 pemain) = setelah **2 manusia** standby, **countdown 30 dtk**
+   + tombol **"Mulai sekarang (isi bot)"**; sisa seat diisi **bot SERVER**; room
+   **terkunci begitu mulai** (manusia telat → antre room baru, tak ganti bot).
+
+**Arsitektur (acuan):**
+- **Metadata room** (Colyseus `setMetadata`): `gameId`, `host`, `mode` (+ nanti
+  `humans`/`target`/`countdownEndsAt`). Jumlah pemain diambil dari `clients`.
+- **Discovery** lewat `matchMaker.query()` (Colyseus 0.15) — endpoint `GET /lobby`
+  balikkan `{ online, rooms, waitingByGame }`. TIDAK mengubah `joinOrCreate`
+  (matchmaking yg sudah ada); tombol **Gabung** cukup navigasi ke
+  `/play/:gameId?online=1&wm=<mode>` → `joinOrCreate` mendarat di room menunggu.
+- **Online count** = jumlah `clients` di semua room (orang yg tersambung &
+  siap main). Browser yg cuma lihat-lihat tidak dihitung (by design).
+- **Bot server** (B2): folder baru `server/bots/` = lapisan keputusan (port
+  heuristik dari `LocalBotController` client; aturan sudah ada di `server/logic/`).
+- **Keep-alive**: `.github/workflows/keepalive.yml` (cron) ATAU cron-job.org
+  (lebih andal — GH Actions sering telat & dimatikan setelah 60 hari idle repo).
+
+**Peta fase B (lihat juga "Peta fase rilis"):**
+- [ ] **Fase B1 — Presence & Discovery** (SEDANG DIKERJAKAN sesi 7): endpoint
+  `/lobby` + metadata room; UI daftar lobi + badge kartu + hitungan online di
+  homepage; keep-alive cron. *Tak butuh bot — langsung pakai utk semua game 2p.*
+- [ ] **Fase B2 — Bot-fill server**: port heuristik bot → `server/bots/`;
+  countdown 30 dtk + tombol "Mulai sekarang"; naikkan `maxClients` (Ludo 4,
+  Halma 3) + perbaiki `onLeave` utk >2 pemain.
+- [ ] **Fase B3 — Ketahanan**: reconnect (`allowReconnection`) + room privat berkode.
+
 ## Kebijakan grafis (KEPUTUSAN — 15 Juni 2026)
 
 > **Mulai sekarang: dukungan grafis untuk SEMUA game (Ular Tangga, Ludo, Halma)

@@ -2,7 +2,7 @@
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
-const { Server } = require("colyseus");
+const { Server, matchMaker } = require("colyseus");
 const { WebSocketTransport } = require("@colyseus/ws-transport");
 const { SnakesLaddersRoom } = require("./rooms/SnakesLaddersRoom");
 const { LudoRoom } = require("./rooms/LudoRoom");
@@ -18,6 +18,49 @@ app.use(express.json());
 hof.init(); // mulai inisialisasi store (Turso bila env diisi, else in-memory)
 
 app.get("/health", (_req, res) => res.json({ ok: true, name: "arena-papan" }));
+
+// ---------- Lobi online (presence + discovery) ----------
+// Nama room Colyseus -> id game di registry client.
+const ROOM_TO_GAME = {
+  snakes_ladders: "ular-tangga",
+  ludo: "ludo",
+  halma: "halma"
+};
+
+// GET /lobby -> { online, rooms, waitingByGame }
+//   online        = jumlah client tersambung di semua room (orang siap main).
+//   rooms         = room yang MASIH bisa digabung (menunggu pemain).
+//   waitingByGame = jumlah room menunggu per game (untuk badge kartu).
+app.get("/lobby", async (_req, res) => {
+  try {
+    const rooms = await matchMaker.query({});
+    let online = 0;
+    const waiting = [];
+    const waitingByGame = {};
+    for (const r of rooms) {
+      online += r.clients || 0;
+      const gameId = ROOM_TO_GAME[r.name];
+      if (!gameId) continue;
+      const joinable =
+        !r.locked && !r.private && r.clients > 0 && r.clients < r.maxClients;
+      if (!joinable) continue;
+      const meta = r.metadata || {};
+      waiting.push({
+        roomId: r.roomId,
+        gameId,
+        host: meta.host || "Pemain",
+        mode: meta.mode || "single",
+        humans: r.clients,
+        max: r.maxClients
+      });
+      waitingByGame[gameId] = (waitingByGame[gameId] || 0) + 1;
+    }
+    res.json({ online, rooms: waiting, waitingByGame });
+  } catch (e) {
+    console.error("[lobby] gagal:", e.message);
+    res.status(500).json({ error: "gagal mengambil lobi" });
+  }
+});
 
 // ---------- Hall of Fame global (leaderboard lintas perangkat) ----------
 // GET  /hof  -> baris per (nama, game); client mengagregasi + hitung rasio.
