@@ -19,3 +19,10 @@ services:
       - key: NODE_VERSION
         value: "22"
       # PORT diisi otomatis oleh Render; index.js sudah membaca process.env.PORT.
+      # Hall of Fame persisten (Turso/libSQL). Isi NILAINYA di Render Dashboard
+      # (sync:false = tidak disimpan di repo). Tanpa ini, server pakai store
+      # in-memory yang reset tiap restart. Lihat PANDUAN-TURSO.md.
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false

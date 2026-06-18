@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { GAMES } from "../games/registry.js";
 import { recordResult } from "../lib/storage.js";
+import { postBotResult } from "../lib/hofApi.js";
 import AdSlot from "../components/AdSlot.jsx";
 import snakesLaddersModule from "../games/snakes-ladders/index.js";
 import ludoModule from "../games/ludo/index.js";
@@ -162,7 +163,12 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, playerName, gameId
         if (cancelled) return;
         phaserGame = mod.createGame(hostRef.current, {
           controller,
-          onGameOver: ({ iWon }) => recordResult(gameId, { win: iWon })
+          onGameOver: ({ iWon }) => {
+            recordResult(gameId, { win: iWon }); // rekor lokal perangkat ini
+            // Hasil online dicatat OTORITATIF oleh server (room); cukup kirim
+            // hasil lawan-bot ke leaderboard global agar tak dobel & tak ditipu.
+            if (mode === "bot") postBotResult(gameId, iWon);
+          }
         });
       } catch {
         setError(

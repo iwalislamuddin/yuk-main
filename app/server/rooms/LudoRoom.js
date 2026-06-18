@@ -1,6 +1,7 @@
 const { Room } = require("colyseus");
 const { LudoPlayer, LudoState } = require("./ludoSchema");
 const Ludo = require("../logic/ludo");
+const hof = require("../hof/store");
 
 /**
  * Room Ludo. Server otoritatif:
@@ -93,6 +94,18 @@ class LudoRoom extends Room {
 
     s.ranking.splice(0);
     L.ranking.forEach((idx) => s.ranking.push(L.players[idx].name));
+
+    this.maybeRecordFinish();
+  }
+
+  // Catat hasil match ke Hall of Fame global saat ada pemenang (sekali, otoritatif).
+  maybeRecordFinish() {
+    if (this.recorded || !this.logic.winner) return;
+    this.recorded = true;
+    const players = this.logic.players.map((p) => ({ name: p.name }));
+    hof
+      .recordMatch({ gameId: "ludo", players, winnerName: this.logic.winner })
+      .catch((e) => console.error("[hof] catat ludo gagal:", e.message));
   }
 }
 

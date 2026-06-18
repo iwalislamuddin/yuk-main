@@ -7,6 +7,7 @@ const { WebSocketTransport } = require("@colyseus/ws-transport");
 const { SnakesLaddersRoom } = require("./rooms/SnakesLaddersRoom");
 const { LudoRoom } = require("./rooms/LudoRoom");
 const { HalmaRoom } = require("./rooms/HalmaRoom");
+const hof = require("./hof/store");
 
 const PORT = process.env.PORT || 2567;
 
@@ -14,11 +15,68 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+hof.init(); // mulai inisialisasi store (Turso bila env diisi, else in-memory)
+
 app.get("/health", (_req, res) => res.json({ ok: true, name: "arena-papan" }));
 
-// TODO (roadmap): endpoint Hall of Fame global.
-// POST /hof  -> simpan hasil match (divalidasi dari room, bukan dari client)
-// GET  /hof  -> leaderboard lintas perangkat (simpan di Postgres/SQLite)
+// ---------- Hall of Fame global (leaderboard lintas perangkat) ----------
+// GET  /hof  -> baris per (nama, game); client mengagregasi + hitung rasio.
+// POST /hof  -> lapor hasil LAWAN-BOT (offline) saja, source dipaksa "bot".
+//   Hasil ONLINE dicatat otoritatif oleh room (source "online"), TIDAK lewat
+//   sini. Endpoint ini berbasis-percaya (tanpa login), jadi dipasangi pengaman
+//   murah: validasi input + rate limit per IP. Lihat catatan anti-curang.
+
+// Rate limit sederhana per IP: maks 30 POST / menit.
+const rlHits = new Map(); // ip -> { count, resetAt }
+function rateLimited(ip) {
+  const now = Date.now();
+  const WINDOW = 60_000;
+  const MAX = 30;
+  let e = rlHits.get(ip);
+  if (!e || now > e.resetAt) {
+    e = { count: 0, resetAt: now + WINDOW };
+    rlHits.set(ip, e);
+  }
+  e.count += 1;
+  return e.count > MAX;
+}
+function clientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd) return fwd.split(",")[0].trim();
+  return req.socket?.remoteAddress || "?";
+}
+
+app.get("/hof", async (_req, res) => {
+  try {
+    res.json({ rows: await hof.getLeaderboardRows() });
+  } catch (e) {
+    console.error("[hof] GET gagal:", e.message);
+    res.status(500).json({ error: "gagal mengambil leaderboard" });
+  }
+});
+
+app.post("/hof", async (req, res) => {
+  if (rateLimited(clientIp(req))) {
+    return res.status(429).json({ error: "terlalu sering, coba lagi nanti" });
+  }
+  const { name, gameId, win } = req.body || {};
+  if (typeof name !== "string" || !hof.sanitizeName(name)) {
+    return res.status(400).json({ error: "nama tidak valid" });
+  }
+  if (!hof.KNOWN_GAMES.has(gameId)) {
+    return res.status(400).json({ error: "game tidak dikenal" });
+  }
+  if (typeof win !== "boolean") {
+    return res.status(400).json({ error: "field win harus boolean" });
+  }
+  try {
+    await hof.recordResult({ name, gameId, source: "bot", win });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("[hof] POST gagal:", e.message);
+    res.status(500).json({ error: "gagal menyimpan hasil" });
+  }
+});
 
 const httpServer = http.createServer(app);
 const gameServer = new Server({

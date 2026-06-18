@@ -252,11 +252,21 @@ a.game-card:hover {
 }
 
 /* ---------- Hall of Fame ---------- */
+.filter-label {
+  display: block;
+  color: var(--cream);
+  opacity: 0.7;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 4px;
+}
+
 .filter-row {
   display: flex;
   gap: 8px;
-  margin: 16px 0;
+  margin: 4px 0 0;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .chip {
@@ -271,6 +281,11 @@ a.game-card:hover {
 .chip.active {
   background: var(--amber);
   color: #3b2a08;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .hof table {

@@ -1,6 +1,7 @@
 const { Room } = require("colyseus");
 const { Player, SnakesLaddersState } = require("./schema");
 const { applyMove, rollDice, FINISH } = require("../logic/snakesLadders");
+const hof = require("../hof/store");
 
 /**
  * Room Ular Tangga. Server otoritatif:
@@ -46,6 +47,7 @@ class SnakesLaddersRoom extends Room {
       this.state.winner = player.name;
       this.state.phase = "finished";
       this.state.currentTurn = "";
+      this.recordFinish();
       return;
     }
 
@@ -64,8 +66,20 @@ class SnakesLaddersRoom extends Room {
         this.state.winner = last.name;
         this.state.phase = "finished";
         this.state.currentTurn = "";
+        this.recordFinish();
       }
     }
+  }
+
+  // Catat hasil match ke Hall of Fame global (sekali per match, otoritatif).
+  recordFinish() {
+    if (this.recorded) return;
+    this.recorded = true;
+    const players = [];
+    this.state.players.forEach((p) => players.push({ name: p.name }));
+    hof
+      .recordMatch({ gameId: "ular-tangga", players, winnerName: this.state.winner })
+      .catch((e) => console.error("[hof] catat ular-tangga gagal:", e.message));
   }
 }
 

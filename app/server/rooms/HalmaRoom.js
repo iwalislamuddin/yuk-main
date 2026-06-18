@@ -1,6 +1,7 @@
 const { Room } = require("colyseus");
 const { HalmaPlayer, HalmaState } = require("./halmaSchema");
 const Halma = require("../logic/halma");
+const hof = require("../hof/store");
 
 /**
  * Room Halma. Server otoritatif: langkah divalidasi di server (logic Halma jadi
@@ -84,6 +85,18 @@ class HalmaRoom extends Room {
     s.lastSeat = lm ? lm.seat : -1;
     s.lastPath.splice(0);
     if (lm) lm.path.forEach((h) => s.lastPath.push(h));
+
+    this.maybeRecordFinish();
+  }
+
+  // Catat hasil match ke Hall of Fame global saat ada pemenang (sekali, otoritatif).
+  maybeRecordFinish() {
+    if (this.recorded || !this.logic.winner) return;
+    this.recorded = true;
+    const players = this.logic.players.map((p) => ({ name: p.name }));
+    hof
+      .recordMatch({ gameId: "halma", players, winnerName: this.logic.winner })
+      .catch((e) => console.error("[hof] catat halma gagal:", e.message));
   }
 }
 
