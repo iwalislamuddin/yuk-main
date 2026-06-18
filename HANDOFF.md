@@ -1,8 +1,10 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 18 Juni 2026 (sesi 7 — online multiplayer: Fase B1
-> presence/discovery LIVE + Fase B2 bot-fill server Ludo/Halma, push ke main).
+> Terakhir diperbarui: 18 Juni 2026 (sesi 8 — **Fase B3 SELESAI**: RECONNECT
+> (`allowReconnection`) + ROOM PRIVAT berkode untuk ketiga game; PLUS perbaikan
+> matchmaking SATU ANTRIAN per game (konfigurasi online dipatok, `filterBy`
+> dibuang). Semua teruji headless + browser; BELUM di-commit/push).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
@@ -279,6 +281,97 @@ ada di bagian **"Konsep Online Multiplayer"** di bawah (B1 & B2 ditandai selesai
    > `app/node_modules/colyseus.js/build/cjs/index.js` (require pakai path gaya
    > Windows `D:/...`, bukan `/d/...`).
 
+## Yang sudah dikerjakan (sesi 8 — 18 Juni 2026)
+
+**Fase B3 bagian 1: RECONNECT (ketahanan online).** Pemain yang putus tak sengaja
+(refresh / sinyal jelek) TIDAK langsung kalah/jadi bot — ada masa tenggang 30 dtk
+untuk menyambung kembali. Berlaku ketiga game (Ular Tangga, Ludo, Halma).
+
+1. **Server (`allowReconnection`):** `onLeave(client, consented)` di ketiga room
+   (`SnakesLaddersRoom`, `LudoRoom`, `HalmaRoom`) kini **async**. Saat MAIN &
+   putus TAK disengaja (`consented=false`): pemain ditandai `disconnected=true`
+   (field schema baru di `schema.js`/`ludoSchema.js`/`halmaSchema.js`, dicermin di
+   `sync()`), lalu `await this.allowReconnection(client, RECONNECT_SECONDS)`.
+   Kembali sebelum tenggang → `disconnected=false`, lanjut main. Tenggang habis
+   ATAU keluar **disengaja** → perilaku lama (Ludo/Halma: jadi **bot**; Ular
+   Tangga: lawan **menang**). Selama tenggang, giliran pemain itu **tertahan**
+   (bot belum ambil alih) → otomatis lanjut begitu dia kembali.
+   `RECONNECT_SECONDS = Number(process.env.RECONNECT_SECONDS) || 30` (override env
+   untuk tes).
+2. **Client (auto-reconnect):** helper baru **`client/src/lib/online.js`** —
+   `bindRoom(controller, room)` dipakai ketiga `OnlineController`. Menyimpan
+   `room.reconnectionToken`, dan saat `onLeave` dgn code ≠ 4000 (bukan leave
+   disengaja) & game belum usai → coba `client.reconnect(token)` berkala (tiap
+   2 dtk, sampai ~35 dtk). `dispose()` set `this.disposed=true` + `room.leave()`
+   (consented, code 4000) supaya pindah-halaman TIDAK memicu reconnect.
+   Controller melapor status lewat `onConnectionChange(cb)`.
+3. **UI:** `GamePage.jsx` (PhaserHost) menampilkan **banner**: "⏳ menyambung
+   ulang…" saat `reconnecting`, "⚠️ Koneksi hilang" (+ tombol Kembali) saat
+   `lost`. CSS `.conn-banner` di `styles.css`. (Indikator "terputus" di dalam
+   scene Phaser per-pemain BELUM dibuat — field `disconnected` sudah tersedia di
+   mapState bila ingin ditambah nanti.)
+4. **Diverifikasi headless** (`app/server/rooms/reconnect.test.cjs`, server nyata
+   via colyseus.js, grace dipercepat 2 dtk): (1) putus → `disconnected=true` &
+   belum bot; reconnect → pulih jadi manusia; (2) grace habis → jadi bot &
+   flag dibersihkan; (3) leave disengaja → langsung bot tanpa grace. **Semua
+   lulus.** `vite build` bersih; `npm ci --dry-run` lolos (tak ada dep baru).
+
+> **Catatan uji:** verifikasi online pakai headless (preview lokal HANYA client —
+> server Colyseus bentrok PORT 5173, lihat catatan tooling sesi 7). Auto-reconnect
+> client memakai `client.reconnect()` — jalur API yang sama persis dgn yang lulus
+> di tes server. **Belum diuji di browser sungguhan**: idealnya sesi depan tes
+> 2 tab + matikan/sambung jaringan untuk lihat banner + pemulihan visual.
+
+**Perbaikan matchmaking: SATU ANTRIAN per game (anti-fragmentasi).** Masalah yang
+ditemukan user saat simulasi: `filterBy(["mode","target"])` memecah online jadi
+sampai 6 antrian/game (2/3/4 × single/ranking); dua orang acak hampir tak pernah
+memilih kombinasi sama → tak pernah ketemu. **Keputusan user: konfigurasi online
+DIPATOK per game** (bukan dipilih pemain):
+- **Ludo online = 4 pemain, mode peringkat**; **Halma online = 3 pemain, peringkat**;
+  Ular Tangga = 2 pemain. Dipaksa OTORITATIF di `onCreate` tiap room (abaikan
+  options dari client).
+- **`filterBy` DIBUANG** di `index.js` (`gameServer.define("ludo"/"halma", ...)`
+  tanpa filter) → semua pemain satu game masuk SATU room (sampai penuh/terkunci),
+  lalu room baru. Praktis **1 room menunggu per game**.
+- **Client (`GamePage.jsx`):** picker "jumlah pemain (online)" Ludo DIHAPUS;
+  picker yang tersisa (kesulitan/jumlah/mode) kini eksplisit **untuk Lawan bot**
+  (ada catatan `.settings-note`). Mode online pakai konstanta `ONLINE_CONFIG`
+  (target+winMode tetap) + ringkasan `.online-hint` ("🌐 Online: 4 pemain · mode
+  peringkat · sisa kursi diisi bot setelah 30 detik"). `Lobby.jsx` tombol Gabung
+  cukup `?online=1` (tak perlu wm/target lagi).
+- **Efek:** Player 2 yang klik kartu game ATAU tombol Gabung sama-sama mendarat di
+  room Player 1 — tak bisa lagi tak sengaja bikin antrian baru.
+- Diverifikasi: tes headless menambah asersi **dua pemain `joinOrCreate` → roomId
+  sama**; UI mode-select Ludo/Halma/Ular Tangga dicek di browser (picker online
+  hilang, hint benar, nol error konsol).
+
+**Fase B3 bagian 2: ROOM PRIVAT berkode.** Main dengan teman tertentu (bukan
+matchmaking publik). Berlaku ketiga game.
+
+1. **Server:** tiap room `onCreate(options)` → `if (options.private) this.setPrivate(true)`.
+   Colyseus mengecualikan room privat dari matchmaking publik (`findOneRoomAvailable`
+   memfilter `private:false`) → pemain publik tak akan nyasar ke room teman. Lobi
+   (`/lobby`) sudah memfilter `!r.private` → room privat tak muncul di daftar.
+   Konfigurasi room privat **sama dengan publik** (Ludo 4 / Halma 3 / Ular Tangga 2,
+   bot-fill + "Mulai sekarang" tetap jalan). *Catatan:* belum ada opsi ukuran khusus
+   privat (mis. 1v1 murni) — bisa ditambah nanti.
+2. **Client:** `lib/online.js` dapat helper `createPrivate()` (`client.create({private:true})`)
+   & `joinByCode(code)` (`client.joinById(code)`); tiap `OnlineController` dapat
+   `connectPrivate()`, `connectByCode(code)`, `getCode()` (= `room.roomId` sbg kode
+   undangan). **KODE = roomId Colyseus** (9 char), tak perlu registry sendiri.
+3. **UI (`GamePage.jsx`):** section "🔒 Main dengan teman" dgn tombol **Buat room
+   privat** + field **Gabung lewat kode**. Host melihat banner kode (`.code-banner`)
+   di atas papan + tombol **Salin**. `onlineKind` (public|create|join) + `joinCode`
+   diteruskan ke `PhaserHost` yang memilih cara konek. Kode salah → pesan error khusus.
+4. **Perbaikan balapan (penting):** `bindRoom` kini cek `controller.disposed` — bila
+   pemain keluar SELAMA proses connect, room yg lahir belakangan langsung di-`leave()`
+   (cegah room yatim menggantung di server; tadinya bikin `online` ngaco).
+5. **Diverifikasi:** tes headless skenario 4 (host create → kode; publik joinOrCreate
+   TIDAK masuk room privat; teman joinById → room sama; kode salah ditolak) — lulus.
+   Browser end-to-end (server lokal 2567): klik "Buat room privat" → kode tampil
+   (`2mdbYvbq6`), `/lobby` balas `online:1, rooms:[]` (privat tersembunyi, tanpa
+   room yatim). `vite build` bersih.
+
 ## Peta fase rilis (monetisasi + online)
 
 - [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
@@ -352,7 +445,10 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
   - *Catatan:* turbo (percepat bot setelah manusia finis di mode ranking)
     BELUM diport ke server — bot online jalan tempo normal (650–900ms Ludo,
     620ms Halma). Tidak kritis; bisa ditambah nanti.
-- [ ] **Fase B3 — Ketahanan**: reconnect (`allowReconnection`) + room privat berkode.
+- [x] **Fase B3 — Ketahanan (SELESAI sesi 8)**: (1) **reconnect** ketiga game
+  (`allowReconnection` server + auto-reconnect client `lib/online.js` + banner UI);
+  (2) **room privat berkode** (`setPrivate` + `create`/`joinById`, kode = roomId,
+  UI buat/gabung + banner kode). Teruji headless + browser.
 
 ## Kebijakan grafis (KEPUTUSAN — 15 Juni 2026)
 
@@ -382,8 +478,9 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
    dulu. Taruh di `app/client/public/assets/snakes-ladders/dice.png` (format di
    `PANDUAN-ASET.md`); engine sudah punya fallback, jadi tinggal pasang file +
    cek visual. Format dadu sama bisa dipakai ulang untuk Ludo.
-3. **Fase B3 — Ketahanan online**: reconnect (`allowReconnection` Colyseus) agar
-   disconnect sesaat tak langsung jadi bot/kalah; room privat berkode-undang.
+3. **Fase B3 — Ketahanan online**: **SELESAI sesi 8** — reconnect
+   (`allowReconnection`) + room privat berkode (`setPrivate`/`create`/`joinById`,
+   UI buat & gabung lewat kode). Lihat blok sesi 8.
 4. **Turbo bot online** (opsional): percepat langkah bot di mode ranking setelah
    manusia finis (sudah ada di client offline, BELUM diport ke room server).
 5. **Hall of Fame Mingguan** (v2.0): chip "Mingguan (segera)" sudah ada di UI —
@@ -408,11 +505,13 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
 - [x] **Deploy server publik + TLS — SELESAI (sesi 5).** Server di Render
       (`wss://yuk-main-server.onrender.com`), `VITE_SERVER_URL` di-set di Pages,
       client HTTPS → `wss://`. Online lintas internet jalan.
-- [ ] Reconnect: kini pemain putus = lawan otomatis menang (`onLeave`). Pakai
-      `allowReconnection()` Colyseus + jeda grace agar refresh/sinyal jelek tak
-      langsung kalah.
-- [ ] Room privat / kode-undang teman: kini auto-matchmaking (`joinOrCreate`).
-      Tambah opsi buat-room berkode supaya bisa main dgn teman tertentu.
+- [x] **Reconnect — SELESAI (sesi 8).** `allowReconnection()` grace 30 dtk di
+      ketiga room + auto-reconnect client (`lib/online.js`) + banner status. Putus
+      sesaat (refresh/sinyal jelek) tak langsung kalah/jadi bot. Teruji headless
+      (`server/rooms/reconnect.test.cjs`).
+- [x] **Room privat / kode-undang teman — SELESAI (sesi 8).** `setPrivate(true)`
+      saat `client.create({private:true})`; gabung via `joinById(kode)` (kode =
+      roomId). UI buat room + field gabung kode + banner kode di `GamePage.jsx`.
 - [x] **Online >2 pemain: Ludo (4) & Halma (3) — SELESAI (sesi 7, Fase B2).**
       `maxClients = target` (dipilih host); bot-fill server isi sisa kursi;
       `onLeave` saat main mengubah pemain keluar jadi bot (benar utk 2/3/4).

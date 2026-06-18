@@ -3,6 +3,9 @@ const { Player, SnakesLaddersState } = require("./schema");
 const { applyMove, rollDice, FINISH } = require("../logic/snakesLadders");
 const hof = require("../hof/store");
 
+// Masa tenggang reconnect saat pemain terputus (B3). Override via env utk tes.
+const RECONNECT_SECONDS = Number(process.env.RECONNECT_SECONDS) || 30;
+
 /**
  * Room Ular Tangga. Server otoritatif:
  * - dadu dilempar di server (client tidak bisa curang),
@@ -10,10 +13,14 @@ const hof = require("../hof/store");
  * - state otomatis tersinkron ke semua client lewat Colyseus.
  */
 class SnakesLaddersRoom extends Room {
-  onCreate() {
+  onCreate(options) {
     this.maxClients = 2; // naikkan ke 4 untuk mendukung lebih banyak pemain
     this.setState(new SnakesLaddersState());
     this.turnOrder = [];
+
+    // Room privat (B3): hanya bisa digabung lewat KODE (roomId) -> joinById.
+    if (options?.private) this.setPrivate(true);
+    this.isPrivate = !!options?.private;
 
     this.onMessage("roll", (client) => this.handleRoll(client.sessionId));
   }
@@ -60,9 +67,28 @@ class SnakesLaddersRoom extends Room {
     this.state.currentTurn = this.turnOrder[(idx + 1) % this.turnOrder.length];
   }
 
-  onLeave(client) {
-    this.state.players.delete(client.sessionId);
-    this.turnOrder = this.turnOrder.filter((id) => id !== client.sessionId);
+  async onLeave(client, consented) {
+    const id = client.sessionId;
+
+    // Putus tak sengaja saat main: beri masa tenggang reconnect (B3) sebelum
+    // lawan dinyatakan menang. Refresh/sinyal jelek tak langsung kalah.
+    if (this.state.phase === "playing" && !consented) {
+      const player = this.state.players.get(id);
+      if (player) {
+        player.disconnected = true;
+        try {
+          await this.allowReconnection(client, RECONNECT_SECONDS);
+          const back = this.state.players.get(id);
+          if (back) back.disconnected = false;
+          return; // berhasil kembali
+        } catch (e) {
+          // tenggang habis -> jatuh ke penghapusan + lawan menang di bawah
+        }
+      }
+    }
+
+    this.state.players.delete(id);
+    this.turnOrder = this.turnOrder.filter((x) => x !== id);
 
     // Lawan kabur saat main -> pemain tersisa menang.
     if (this.state.phase === "playing" && this.turnOrder.length === 1) {

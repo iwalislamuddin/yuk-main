@@ -17,10 +17,11 @@ export default function Lobby() {
   const rooms = data?.rooms || [];
   const waitingByGame = data?.waitingByGame || {};
 
-  // Gabung room menunggu: matchmaking server (joinOrCreate) akan mendaratkan
-  // pemain di room yg sesuai game+mode. Cukup buka halaman game dgn mode online.
+  // Gabung room menunggu: konfigurasi online dipatok per game (satu antrian),
+  // jadi cukup buka halaman game dengan mode online — server mendaratkan pemain
+  // di room yang sedang menunggu untuk game itu.
   const join = (room) => {
-    navigate(`/play/${room.gameId}?online=1&wm=${room.mode}&target=${room.max}`);
+    navigate(`/play/${room.gameId}?online=1`);
   };
 
   return (

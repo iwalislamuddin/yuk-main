@@ -7,13 +7,15 @@ class HalmaPlayer extends Schema {
     this.isBot = false;
     this.seat = 0; // sudut papan (0..5)
     this.pieces = new ArraySchema(); // 10 id lubang
+    this.disconnected = false; // terputus, dalam masa tenggang reconnect (B3)
   }
 }
 defineTypes(HalmaPlayer, {
   name: "string",
   isBot: "boolean",
   seat: "number",
-  pieces: ["number"]
+  pieces: ["number"],
+  disconnected: "boolean"
 });
 
 class HalmaState extends Schema {

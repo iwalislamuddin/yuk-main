@@ -6,12 +6,14 @@ class Player extends Schema {
     this.name = "";
     this.pos = 0;
     this.isBot = false;
+    this.disconnected = false; // terputus, dalam masa tenggang reconnect (B3)
   }
 }
 defineTypes(Player, {
   name: "string",
   pos: "number",
-  isBot: "boolean"
+  isBot: "boolean",
+  disconnected: "boolean"
 });
 
 class SnakesLaddersState extends Schema {

@@ -5,6 +5,8 @@ const { pickBotMove } = require("../bots/halma");
 const hof = require("../hof/store");
 
 const COUNTDOWN_MS = 30_000;
+// Masa tenggang reconnect saat pemain terputus (B3). Override via env utk tes.
+const RECONNECT_SECONDS = Number(process.env.RECONNECT_SECONDS) || 30;
 const BOT_LEVEL = "normal"; // tingkat bot pengisi online
 
 /**
@@ -16,12 +18,16 @@ const BOT_LEVEL = "normal"; // tingkat bot pengisi online
  */
 class HalmaRoom extends Room {
   onCreate(options) {
-    const t = Number(options?.target);
-    this.target = t === 3 ? 3 : 2;
+    // Konfigurasi online DIPATOK (otoritatif): satu antrian per game — lihat
+    // catatan di LudoRoom. Halma online selalu 3 pemain, mode peringkat.
+    this.target = 3;
     this.maxClients = this.target;
-    const mode = options?.mode === "ranking" ? "ranking" : "single";
-    this.gameMode = mode;
-    this.logic = Halma.createState(mode, this.target);
+    this.gameMode = "ranking";
+    this.logic = Halma.createState(this.gameMode, this.target);
+
+    // Room privat (B3): hanya bisa digabung lewat KODE (roomId) -> joinById.
+    if (options?.private) this.setPrivate(true);
+    this.isPrivate = !!options?.private;
     this.startsAt = 0;
     this.countdownTimer = null;
     this.botTimer = null;
@@ -106,11 +112,32 @@ class HalmaRoom extends Room {
     this.sync();
   }
 
-  onLeave(client) {
+  async onLeave(client, consented) {
     const id = client.sessionId;
     if (this.logic.phase === "playing") {
       const p = this.logic.players.find((x) => x.id === id);
-      if (p) p.isBot = true; // lanjut dgn bot
+      if (!p || p.isBot) return; // sudah jadi bot / tak ada
+
+      // Putus tak sengaja: beri masa tenggang reconnect (B3).
+      if (!consented) {
+        p.disconnected = true;
+        this.sync();
+        try {
+          await this.allowReconnection(client, RECONNECT_SECONDS);
+          const back = this.logic.players.find((x) => x.id === id);
+          if (back) back.disconnected = false;
+          this.sync();
+          return; // berhasil kembali
+        } catch (e) {
+          // tenggang habis -> jatuh ke konversi bot di bawah
+        }
+      }
+
+      const gone = this.logic.players.find((x) => x.id === id);
+      if (gone) {
+        gone.isBot = true; // lanjut dgn bot
+        gone.disconnected = false;
+      }
       this.sync();
     } else {
       this.logic.players = this.logic.players.filter((x) => x.id !== id);
@@ -174,6 +201,7 @@ class HalmaRoom extends Room {
       }
       sp.name = p.name;
       sp.isBot = p.isBot;
+      sp.disconnected = !!p.disconnected;
       sp.seat = p.seat;
       sp.pieces.splice(0);
       p.pieces.forEach((h) => sp.pieces.push(h));

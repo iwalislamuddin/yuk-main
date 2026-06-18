@@ -4,6 +4,8 @@ const Ludo = require("../logic/ludo");
 const hof = require("../hof/store");
 
 const COUNTDOWN_MS = 30_000; // jeda standby sebelum sisa kursi diisi bot
+// Masa tenggang reconnect saat pemain terputus (B3). Override via env utk tes.
+const RECONNECT_SECONDS = Number(process.env.RECONNECT_SECONDS) || 30;
 
 // Seat (warna/sudut) yg dipakai per jumlah target. 2 pemain = DIAGONAL (seat 0
 // vs 2) supaya tidak bersebelahan; 3/4 pakai urutan biasa.
@@ -22,12 +24,18 @@ const LUDO_SEATS = { 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3] };
  */
 class LudoRoom extends Room {
   onCreate(options) {
-    const t = Number(options?.target);
-    this.target = t >= 2 && t <= 4 ? t : 2;
+    // Konfigurasi online DIPATOK (otoritatif): satu antrian per game supaya dua
+    // pemain yang online berdekatan waktunya pasti mendarat di room yang sama
+    // (tak ada lagi fragmentasi 2/3/4 × mode). Sisa kursi diisi bot.
+    this.target = 4; // Ludo online selalu 4 pemain
     this.maxClients = this.target;
-    const mode = options?.mode === "ranking" ? "ranking" : "single";
-    this.gameMode = mode;
-    this.logic = Ludo.createState(mode);
+    this.gameMode = "ranking"; // online selalu mode peringkat
+    this.logic = Ludo.createState(this.gameMode);
+
+    // Room privat (B3): dibuat lewat client.create({private:true}); tak muncul di
+    // matchmaking publik & lobi, hanya bisa digabung lewat KODE (roomId) -> joinById.
+    if (options?.private) this.setPrivate(true);
+    this.isPrivate = !!options?.private;
     this.startsAt = 0; // epoch ms akhir countdown (0 = tak ada)
     this.countdownTimer = null;
     this.botTimer = null;
@@ -119,12 +127,34 @@ class LudoRoom extends Room {
     this.sync();
   }
 
-  onLeave(client) {
+  async onLeave(client, consented) {
     const id = client.sessionId;
     if (this.logic.phase === "playing") {
-      // Pemain keluar saat main: lanjutkan dgn bot (berlaku utk 2/3/4 pemain).
       const p = this.logic.players.find((x) => x.id === id);
-      if (p) p.isBot = true;
+      if (!p || p.isBot) return; // sudah jadi bot / tak ada
+
+      // Putus tak sengaja: beri masa tenggang reconnect (B3). Giliran pemain ini
+      // tertahan (bot belum ambil alih) sampai dia kembali atau tenggang habis.
+      if (!consented) {
+        p.disconnected = true;
+        this.sync();
+        try {
+          await this.allowReconnection(client, RECONNECT_SECONDS);
+          const back = this.logic.players.find((x) => x.id === id);
+          if (back) back.disconnected = false;
+          this.sync();
+          return; // berhasil kembali
+        } catch (e) {
+          // tenggang habis -> jatuh ke konversi bot di bawah
+        }
+      }
+
+      // Keluar disengaja ATAU tenggang habis: lanjutkan dgn bot (2/3/4 pemain).
+      const gone = this.logic.players.find((x) => x.id === id);
+      if (gone) {
+        gone.isBot = true;
+        gone.disconnected = false;
+      }
       this.sync();
     } else {
       // Masih menunggu: buang pemain & reindex kursi.
@@ -224,6 +254,7 @@ class LudoRoom extends Room {
       }
       sp.name = p.name;
       sp.isBot = p.isBot;
+      sp.disconnected = !!p.disconnected;
       sp.index = p.index;
       for (let i = 0; i < 4; i++) sp.tokens[i] = p.tokens[i];
     }

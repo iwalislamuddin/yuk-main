@@ -1,5 +1,5 @@
-import { Client } from "colyseus.js";
 import { isFinished } from "./logic.js";
+import { joinPublic, createPrivate, joinByCode } from "../../lib/online.js";
 
 /**
  * Controller mode online Halma: terhubung ke room Colyseus "halma".
@@ -17,17 +17,24 @@ export class OnlineController {
     this.lastState = null;
   }
 
+  // Matchmaking publik (konfigurasi dipatok server).
   async connect() {
-    this.client = new Client(this.url);
-    this.room = await this.client.joinOrCreate("halma", {
-      name: this.playerName,
-      mode: this.winMode,
-      target: this.target
-    });
-    this.room.onStateChange((state) => {
-      this.lastState = this.mapState(state);
-      this.cb?.(this.lastState);
-    });
+    await joinPublic(this, "halma", { name: this.playerName });
+  }
+
+  // Buat room privat (B3): roomId jadi kode undangan (lihat getCode()).
+  async connectPrivate() {
+    await createPrivate(this, "halma", { name: this.playerName });
+  }
+
+  // Gabung room privat lewat kode.
+  async connectByCode(code) {
+    await joinByCode(this, code, { name: this.playerName });
+  }
+
+  // Kode undangan room (= roomId) untuk dibagikan saat buat room privat.
+  getCode() {
+    return this.room?.roomId || "";
   }
 
   mapState(state) {
@@ -38,6 +45,7 @@ export class OnlineController {
         id,
         name: p.name,
         isBot: p.isBot,
+        disconnected: p.disconnected,
         seat: p.seat,
         pieces,
         finished: isFinished({ seat: p.seat, pieces })
@@ -79,6 +87,12 @@ export class OnlineController {
     if (this.lastState) cb(this.lastState);
   }
 
+  // Status koneksi: "reconnecting" | "connected" | "lost" (untuk banner UI).
+  onConnectionChange(cb) {
+    this.statusCb = cb;
+    if (this.connStatus) cb(this.connStatus);
+  }
+
   requestMove(from, to) {
     this.room?.send("move", { from, to });
   }
@@ -89,6 +103,7 @@ export class OnlineController {
   }
 
   dispose() {
+    this.disposed = true; // cegah reconnect setelah keluar disengaja
     this.room?.leave();
     this.cb = null;
   }

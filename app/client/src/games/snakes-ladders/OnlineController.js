@@ -1,4 +1,4 @@
-import { Client } from "colyseus.js";
+import { joinPublic, createPrivate, joinByCode } from "../../lib/online.js";
 
 /**
  * Controller mode online: terhubung ke room Colyseus di server.
@@ -12,21 +12,36 @@ export class OnlineController {
     this.lastState = null;
   }
 
+  // Matchmaking publik.
   async connect() {
-    this.client = new Client(this.url);
-    this.room = await this.client.joinOrCreate("snakes_ladders", {
-      name: this.playerName
-    });
-    this.room.onStateChange((state) => {
-      this.lastState = this.mapState(state);
-      this.cb?.(this.lastState);
-    });
+    await joinPublic(this, "snakes_ladders", { name: this.playerName });
+  }
+
+  // Buat room privat (B3): roomId jadi kode undangan (lihat getCode()).
+  async connectPrivate() {
+    await createPrivate(this, "snakes_ladders", { name: this.playerName });
+  }
+
+  // Gabung room privat lewat kode.
+  async connectByCode(code) {
+    await joinByCode(this, code, { name: this.playerName });
+  }
+
+  // Kode undangan room (= roomId) untuk dibagikan saat buat room privat.
+  getCode() {
+    return this.room?.roomId || "";
   }
 
   mapState(state) {
     const players = [];
     state.players.forEach((p, id) =>
-      players.push({ id, name: p.name, pos: p.pos, isBot: p.isBot })
+      players.push({
+        id,
+        name: p.name,
+        pos: p.pos,
+        isBot: p.isBot,
+        disconnected: p.disconnected
+      })
     );
     return {
       phase: state.phase,
@@ -43,11 +58,18 @@ export class OnlineController {
     if (this.lastState) cb(this.lastState);
   }
 
+  // Status koneksi: "reconnecting" | "connected" | "lost" (untuk banner UI).
+  onConnectionChange(cb) {
+    this.statusCb = cb;
+    if (this.connStatus) cb(this.connStatus);
+  }
+
   requestRoll() {
     this.room?.send("roll");
   }
 
   dispose() {
+    this.disposed = true; // cegah reconnect setelah keluar disengaja
     this.room?.leave();
     this.cb = null;
   }

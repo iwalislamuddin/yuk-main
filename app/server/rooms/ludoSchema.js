@@ -7,13 +7,15 @@ class LudoPlayer extends Schema {
     this.isBot = false;
     this.index = 0; // kursi/warna 0..3
     this.tokens = new ArraySchema(-1, -1, -1, -1); // progress 4 pion
+    this.disconnected = false; // terputus, dalam masa tenggang reconnect (B3)
   }
 }
 defineTypes(LudoPlayer, {
   name: "string",
   isBot: "boolean",
   index: "number",
-  tokens: ["number"]
+  tokens: ["number"],
+  disconnected: "boolean"
 });
 
 class LudoState extends Schema {

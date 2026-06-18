@@ -127,10 +127,12 @@ const gameServer = new Server({
 });
 
 // Daftarkan room per game. Game baru = define() baru + file room baru.
+// TANPA filterBy: konfigurasi online dipatok per game (target+mode tetap di
+// onCreate masing-masing room), jadi semua pemain satu game masuk SATU antrian
+// — dua orang yang online berdekatan waktunya pasti ketemu di room yang sama.
 gameServer.define("snakes_ladders", SnakesLaddersRoom);
-// filterBy mode: pemain online hanya dipasangkan dengan mode kemenangan sama.
-gameServer.define("ludo", LudoRoom).filterBy(["mode", "target"]);
-gameServer.define("halma", HalmaRoom).filterBy(["mode", "target"]);
+gameServer.define("ludo", LudoRoom);
+gameServer.define("halma", HalmaRoom);
 
 httpServer.listen(PORT, () =>
   console.log(`Arena Papan server jalan di ws://localhost:${PORT}`)

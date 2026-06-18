@@ -21,24 +21,37 @@ const DIFFICULTIES = [
   { id: "hard", label: "😈 Susah", desc: "Menyusun lompatan, melihat ke depan" }
 ];
 
+// Konfigurasi ONLINE dipatok per game (server juga memaksa ini — lihat
+// rooms/*Room.js). Satu antrian per game: pemain online tak perlu memilih ukuran
+// 2/3/4, semua mendarat di room yang sama lalu sisanya diisi bot. Pilihan ukuran
+// hanya berlaku untuk mode lawan bot (offline).
+const ONLINE_CONFIG = {
+  "ular-tangga": { target: 2, winMode: "single", label: "2 pemain" },
+  ludo: { target: 4, winMode: "ranking", label: "4 pemain · mode peringkat" },
+  halma: { target: 3, winMode: "ranking", label: "3 pemain · mode peringkat" }
+};
+
 export default function GamePage({ playerName }) {
   const { gameId } = useParams();
   const [searchParams] = useSearchParams();
-  // Datang dari tombol "Gabung" di lobi: ?online=1&wm=<mode> -> langsung online.
+  // Datang dari tombol "Gabung" di lobi: ?online=1 -> langsung online (konfigurasi
+  // online dipatok, jadi tak perlu parameter ukuran/mode lagi).
   const autoOnline = searchParams.get("online") === "1";
-  const tParam = Number(searchParams.get("target"));
   const [mode, setMode] = useState(autoOnline ? "online" : null); // null | "bot" | "online"
-  const [winMode, setWinMode] = useState(
-    searchParams.get("wm") === "ranking" ? "ranking" : "single"
-  ); // single | ranking
+  const [onlineKind, setOnlineKind] = useState("public"); // public | create | join (B3)
+  const [joinCode, setJoinCode] = useState(""); // kode room privat yg digabung
+  const [codeInput, setCodeInput] = useState(""); // isian field "gabung lewat kode"
+  const [winMode, setWinMode] = useState("single"); // single | ranking (mode lawan bot)
   const [difficulty, setDifficulty] = useState("normal"); // easy | normal | hard (Halma)
-  const [playerCount, setPlayerCount] = useState(
-    autoOnline && tParam === 3 ? 3 : 2
-  ); // 2 | 3 (Halma: lawan bot & target online)
-  const [onlineTarget, setOnlineTarget] = useState(
-    tParam >= 2 && tParam <= 4 ? tParam : 4
-  ); // target pemain room online (Ludo 2..4; default 4)
+  const [playerCount, setPlayerCount] = useState(2); // 2 | 3 (Halma lawan bot)
   const game = GAMES.find((g) => g.id === gameId);
+
+  // Masuk mode online dengan jenis tertentu (publik / buat privat / gabung kode).
+  const goOnline = (kind, code = "") => {
+    setOnlineKind(kind);
+    setJoinCode(code);
+    setMode("online");
+  };
 
   if (!game) {
     return (
@@ -63,6 +76,13 @@ export default function GamePage({ playerName }) {
       <div className="mode-select">
         <h2>{game.name}</h2>
         <p>{game.desc}</p>
+
+        {(game.id === "halma" || showWinMode) && (
+          <p className="settings-note">
+            ⚙️ Setelan di bawah untuk mode <strong>Lawan bot</strong>. Main online
+            dipatok otomatis (lihat di bawah).
+          </p>
+        )}
 
         {game.id === "halma" && (
           <>
@@ -89,40 +109,18 @@ export default function GamePage({ playerName }) {
                   onClick={() => setPlayerCount(2)}
                 >
                   <strong>2 pemain</strong>
-                  <small>Atas vs bawah</small>
+                  <small>Kamu vs 1 bot</small>
                 </button>
                 <button
                   className={`wm-option${playerCount === 3 ? " active" : ""}`}
                   onClick={() => setPlayerCount(3)}
                 >
                   <strong>3 pemain</strong>
-                  <small>online: sisanya bot setelah 30 dtk</small>
+                  <small>Kamu vs 2 bot</small>
                 </button>
               </div>
             </div>
           </>
-        )}
-
-        {game.id === "ludo" && (
-          <div className="win-mode">
-            <p className="win-mode-label">Jumlah pemain (online)</p>
-            <div className="win-mode-options">
-              {[2, 3, 4].map((n) => (
-                <button
-                  key={n}
-                  className={`wm-option${onlineTarget === n ? " active" : ""}`}
-                  onClick={() => setOnlineTarget(n)}
-                >
-                  <strong>{n} pemain</strong>
-                  <small>
-                    {n === 2
-                      ? "1 lawan"
-                      : `tunggu ${n} pemain · sisanya bot setelah 30 dtk`}
-                  </small>
-                </button>
-              ))}
-            </div>
-          </div>
         )}
 
         {showWinMode && (
@@ -149,8 +147,41 @@ export default function GamePage({ playerName }) {
 
         <div className="mode-buttons">
           <button onClick={() => setMode("bot")}>Lawan bot (offline)</button>
-          <button onClick={() => setMode("online")}>Main online</button>
+          <button onClick={() => goOnline("public")}>Main online</button>
         </div>
+        <p className="online-hint">
+          🌐 Online: {ONLINE_CONFIG[game.id]?.label}
+          {game.id !== "ular-tangga" ? " · sisa kursi diisi bot setelah 30 detik" : ""}
+        </p>
+
+        <div className="private-room">
+          <p className="private-label">🔒 Main dengan teman (room privat berkode)</p>
+          <div className="private-actions">
+            <button className="private-btn" onClick={() => goOnline("create")}>
+              Buat room privat
+            </button>
+            <form
+              className="code-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const c = codeInput.trim();
+                if (c) goOnline("join", c);
+              }}
+            >
+              <input
+                type="text"
+                aria-label="Kode room"
+                placeholder="Punya kode? Tempel di sini"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+              />
+              <button type="submit" className="private-btn" disabled={!codeInput.trim()}>
+                Gabung
+              </button>
+            </form>
+          </div>
+        </div>
+
         <AdSlot slot="pregame-banner" />
       </div>
     );
@@ -158,12 +189,13 @@ export default function GamePage({ playerName }) {
 
   return (
     <PhaserHost
-      key={`${mode}-${winMode}-${difficulty}-${playerCount}-${onlineTarget}`}
+      key={`${mode}-${onlineKind}-${joinCode}-${winMode}-${difficulty}-${playerCount}`}
       mode={mode}
+      onlineKind={onlineKind}
+      joinCode={joinCode}
       winMode={winMode}
       difficulty={difficulty}
       playerCount={playerCount}
-      onlineTarget={onlineTarget}
       playerName={playerName}
       gameId={gameId}
       onExit={() => setMode(null)}
@@ -171,9 +203,11 @@ export default function GamePage({ playerName }) {
   );
 }
 
-function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, playerName, gameId, onExit }) {
+function PhaserHost({ mode, onlineKind, joinCode, winMode, difficulty, playerCount, playerName, gameId, onExit }) {
   const hostRef = useRef(null);
   const [error, setError] = useState("");
+  const [conn, setConn] = useState("connected"); // connected | reconnecting | lost
+  const [roomCode, setRoomCode] = useState(""); // kode room privat (saat jadi host)
 
   useEffect(() => {
     const mod = GAME_MODULES[gameId];
@@ -182,21 +216,35 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, play
       return;
     }
     const serverUrl = import.meta.env.VITE_SERVER_URL || "ws://localhost:2567";
-    // Target room online: Halma pakai pilihan jumlah pemain (2/3), Ludo pakai
-    // selektor target (2/3/4). Offline mengabaikan target.
-    const target = gameId === "halma" ? playerCount : onlineTarget;
-    const opts = { winMode, difficulty, playerCount, target };
+    // Mode lawan bot pakai setelan picker (winMode/difficulty/playerCount).
+    // Mode online DIPATOK per game (ONLINE_CONFIG) — server juga memaksanya, jadi
+    // semua pemain online satu game masuk satu antrian/room.
+    const oc = ONLINE_CONFIG[gameId] || { target: 2, winMode: "single" };
+    const opts =
+      mode === "online"
+        ? { winMode: oc.winMode, target: oc.target }
+        : { winMode, difficulty, playerCount };
     const controller =
       mode === "bot"
         ? new mod.LocalBotController(playerName, opts)
         : new mod.OnlineController(serverUrl, playerName, opts);
+
+    // Banner status koneksi online (reconnect saat sinyal jelek — Fase B3).
+    controller.onConnectionChange?.((s) => setConn(s));
 
     let phaserGame = null;
     let cancelled = false;
 
     (async () => {
       try {
-        if (controller.connect) await controller.connect();
+        if (mode === "online") {
+          // Tiga jenis koneksi online (B3): publik / buat room privat / gabung kode.
+          if (onlineKind === "create") await controller.connectPrivate();
+          else if (onlineKind === "join") await controller.connectByCode(joinCode);
+          else await controller.connect();
+          if (cancelled) return;
+          if (onlineKind === "create") setRoomCode(controller.getCode?.() || "");
+        }
         if (cancelled) return;
         phaserGame = mod.createGame(hostRef.current, {
           controller,
@@ -208,10 +256,14 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, play
           }
         });
       } catch {
-        setError(
-          `Gagal terhubung ke server di ${serverUrl}. ` +
-            "Pastikan server jalan (npm run dev di folder server)."
-        );
+        if (mode === "online" && onlineKind === "join") {
+          setError("Kode room tidak ditemukan, sudah penuh, atau permainan sudah dimulai.");
+        } else {
+          setError(
+            `Gagal terhubung ke server di ${serverUrl}. ` +
+              "Pastikan server jalan (npm run dev di folder server)."
+          );
+        }
       }
     })();
 
@@ -220,7 +272,7 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, play
       controller.dispose?.();
       phaserGame?.destroy(true);
     };
-  }, [mode, winMode, difficulty, playerCount, onlineTarget, playerName, gameId]);
+  }, [mode, onlineKind, joinCode, winMode, difficulty, playerCount, playerName, gameId]);
 
   if (error) {
     return (
@@ -233,6 +285,25 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, play
   return (
     <div className="phaser-wrap">
       <button className="back-btn" onClick={onExit}>&larr; Ganti mode</button>
+      {roomCode && (
+        <div className="code-banner">
+          <span>
+            🔒 Kode room: <strong>{roomCode}</strong>
+          </span>
+          <button onClick={() => navigator.clipboard?.writeText(roomCode)}>Salin</button>
+          <small>Bagikan kode ini ke temanmu agar bisa bergabung.</small>
+        </div>
+      )}
+      {conn === "reconnecting" && (
+        <div className="conn-banner conn-reconnecting">
+          ⏳ Koneksi terputus — menyambung ulang…
+        </div>
+      )}
+      {conn === "lost" && (
+        <div className="conn-banner conn-lost">
+          ⚠️ Koneksi hilang. <button onClick={onExit}>Kembali</button>
+        </div>
+      )}
       <div ref={hostRef} className="phaser-host" />
     </div>
   );
