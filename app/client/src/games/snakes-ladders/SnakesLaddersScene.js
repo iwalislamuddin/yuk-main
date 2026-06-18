@@ -71,6 +71,8 @@ export default class SnakesLaddersScene extends Phaser.Scene {
     this.prevTurn = null;
     this.latestState = null;
 
+    this.committedState = null; // state yang sedang DITAMPILKAN (mengikuti animasi)
+
     this.createAnimations();
     this.drawBoard();
     this.drawJumps();
@@ -201,7 +203,10 @@ export default class SnakesLaddersScene extends Phaser.Scene {
       .rectangle(290, 594, 200, 56, 0xe8a13c)
       .setStrokeStyle(2, 0xb97a1f)
       .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => this.deps.controller.requestRoll());
+      .on("pointerdown", () => {
+        if (this.isBusy()) return; // jangan kocok saat pin masih bergerak
+        this.deps.controller.requestRoll();
+      });
     this.add
       .text(290, 594, "KOCOK DADU", {
         fontSize: "17px",
@@ -262,12 +267,21 @@ export default class SnakesLaddersScene extends Phaser.Scene {
   // Update state dari server/bot bisa datang saat animasi masih jalan,
   // jadi semua gerakan diantre dan diputar berurutan.
 
+  isBusy() {
+    return this.animating || this.animQueue.length > 0;
+  }
+
   processQueue() {
     if (this.animating) return;
     const job = this.animQueue.shift();
     if (!job) {
-      this.refreshDiceFace();
       this.maybeShowWinner();
+      return;
+    }
+    // Penanda commit: terapkan status/giliran SETELAH animasi batch ini selesai.
+    if (job.type === "commit") {
+      this.applyStatus(job.state);
+      this.processQueue();
       return;
     }
     this.animating = true;
@@ -399,6 +413,7 @@ export default class SnakesLaddersScene extends Phaser.Scene {
 
   renderState(state) {
     this.latestState = state;
+    const before = this.animQueue.length;
     let moved = false;
 
     state.players.forEach((p, i) => {
@@ -449,7 +464,19 @@ export default class SnakesLaddersScene extends Phaser.Scene {
     }
     this.prevDice = state.lastDice;
     this.prevTurn = state.turnId;
+
+    // Jika ada animasi yang baru diantre, langsung nonaktifkan tombol kocok &
+    // bekukan status sampai penanda "commit" di akhir batch — supaya giliran/
+    // tombol tidak berpindah selagi pin lawan masih bergerak.
+    if (this.animQueue.length > before) this.rollBtn.setFillStyle(0xcbbfa6);
+    this.animQueue.push({ type: "commit", state });
     this.processQueue();
+  }
+
+  // Terapkan status (teks giliran, dadu, tombol) untuk satu state. Dipanggil
+  // dari penanda commit, yaitu SETELAH animasi gerakan menuju state ini selesai.
+  applyStatus(state) {
+    this.committedState = state;
 
     // Teks status.
     if (state.phase === "waiting") {
@@ -469,10 +496,13 @@ export default class SnakesLaddersScene extends Phaser.Scene {
       this.infoText.setText(myTurn ? "Ketuk KOCOK DADU." : "Menunggu lawan...");
     }
 
-    // Dadu + tombol.
-    if (!this.animating && this.animQueue.length === 0) this.refreshDiceFace();
+    // Dadu + tombol. Tombol tetap nonaktif bila masih ada gerakan mengantre.
+    this.refreshDiceFace(state);
     const canRoll =
-      state.phase === "playing" && !state.winner && state.turnId === state.myId;
+      state.phase === "playing" &&
+      !state.winner &&
+      state.turnId === state.myId &&
+      !this.isBusy();
     this.rollBtn.setFillStyle(canRoll ? 0xe8a13c : 0xcbbfa6);
 
     // Lapor hasil sekali untuk Hall of Fame.
@@ -483,8 +513,8 @@ export default class SnakesLaddersScene extends Phaser.Scene {
     }
   }
 
-  refreshDiceFace() {
-    const dice = this.latestState?.lastDice;
+  refreshDiceFace(state = this.committedState) {
+    const dice = state?.lastDice;
     if (this.diceSprite) {
       if (dice) this.diceSprite.setFrame(dice - 1);
     } else {
@@ -494,9 +524,9 @@ export default class SnakesLaddersScene extends Phaser.Scene {
 
   // Overlay menang baru tampil setelah semua animasi gerak selesai.
   maybeShowWinner() {
-    const state = this.latestState;
+    const state = this.committedState;
     if (!state?.winner || this.overlay) return;
-    if (this.animating || this.animQueue.length > 0) return;
+    if (this.isBusy()) return;
     this.showWinnerOverlay(state);
   }
 
