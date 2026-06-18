@@ -12,6 +12,7 @@ export class OnlineController {
     this.url = url;
     this.playerName = playerName;
     this.winMode = opts.winMode === "ranking" ? "ranking" : "single";
+    this.target = Number(opts.target) === 3 ? 3 : 2;
     this.cb = null;
     this.lastState = null;
   }
@@ -20,7 +21,8 @@ export class OnlineController {
     this.client = new Client(this.url);
     this.room = await this.client.joinOrCreate("halma", {
       name: this.playerName,
-      mode: this.winMode
+      mode: this.winMode,
+      target: this.target
     });
     this.room.onStateChange((state) => {
       this.lastState = this.mapState(state);
@@ -63,6 +65,9 @@ export class OnlineController {
       turnId: state.currentTurn,
       myId,
       mySeat: me ? me.seat : -1,
+      myIndex: me ? players.indexOf(me) : -1,
+      target: state.target || players.length,
+      startsAt: state.startsAt || 0,
       lastMove,
       ranking: Array.from(state.ranking || []),
       winner: state.winner || null
@@ -76,6 +81,11 @@ export class OnlineController {
 
   requestMove(from, to) {
     this.room?.send("move", { from, to });
+  }
+
+  // Host menekan "Mulai sekarang" saat menunggu: isi sisa kursi dgn bot.
+  requestStart() {
+    this.room?.send("startNow");
   }
 
   dispose() {

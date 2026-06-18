@@ -26,6 +26,8 @@ class LudoState extends Schema {
     this.winner = "";
     this.phase = "waiting"; // waiting | playing | finished
     this.mode = "single"; // single | ranking
+    this.target = 2; // jumlah pemain target room (2..4)
+    this.startsAt = 0; // epoch ms akhir countdown standby (0 = tak ada)
     this.legalTokens = new ArraySchema(); // pion sah utk pemain giliran ini
     this.ranking = new ArraySchema(); // nama pemain urut finis (juara 1 dulu)
   }
@@ -38,6 +40,8 @@ defineTypes(LudoState, {
   winner: "string",
   phase: "string",
   mode: "string",
+  target: "number",
+  startsAt: "number",
   legalTokens: ["number"],
   ranking: ["string"]
 });

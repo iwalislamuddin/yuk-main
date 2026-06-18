@@ -266,6 +266,14 @@ export default class LudoScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xb97a1f)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
+        const v = this.committedView;
+        // Saat menunggu: tombol dipakai ulang sbg "Mulai sekarang" (host saja).
+        if (v && v.phase === "waiting") {
+          if (v.myIndex === 0 && v.players.length >= 2) {
+            this.deps.controller.requestStart?.();
+          }
+          return;
+        }
         if (this.isBusy()) return; // jangan kocok saat pion masih bergerak
         this.deps.controller.requestRoll();
       });
@@ -306,6 +314,34 @@ export default class LudoScene extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.easeInOut"
     });
+
+    // Ticker countdown standby (online): perbarui sisa detik tiap 1 dtk.
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        const v = this.committedView;
+        if (v && v.phase === "waiting" && v.startsAt > 0) this.renderWaiting(v);
+      }
+    });
+  }
+
+  // Tampilan saat menunggu pemain (online): jumlah pemain, countdown, tombol mulai.
+  renderWaiting(view) {
+    const humans = view.players.length;
+    const target = view.target || humans;
+    const canStart = view.myIndex === 0 && humans >= 2;
+
+    this.turnText.setText(`Menunggu pemain... (${humans}/${target})`).setColor("#143b30");
+    if (view.startsAt > 0) {
+      const secs = Math.max(0, Math.ceil((view.startsAt - Date.now()) / 1000));
+      this.infoText.setText(`Mulai otomatis dengan bot dalam ${secs} dtk…`);
+    } else {
+      this.infoText.setText("Buka tab/perangkat lain → Main online.");
+    }
+
+    this.rollBtn.setFillStyle(canStart ? 0xe8a13c : 0xcbbfa6);
+    this.rollLabel.setText(canStart ? "MULAI SEKARANG" : "MENUNGGU…");
   }
 
   // Pindahkan & warnai penanda giliran ke basis pemain yang sedang giliran.
@@ -587,8 +623,7 @@ export default class LudoScene extends Phaser.Scene {
     this.updateTurnIndicator(view);
 
     if (view.phase === "waiting") {
-      this.turnText.setText("Menunggu pemain lain...").setColor("#143b30");
-      this.infoText.setText("Buka tab/perangkat lain → Main online.");
+      this.renderWaiting(view);
     } else if (view.winner) {
       this.turnText.setText(`${view.winner} menang!`).setColor("#143b30");
       this.infoText.setText(

@@ -26,12 +26,18 @@ export default function GamePage({ playerName }) {
   const [searchParams] = useSearchParams();
   // Datang dari tombol "Gabung" di lobi: ?online=1&wm=<mode> -> langsung online.
   const autoOnline = searchParams.get("online") === "1";
+  const tParam = Number(searchParams.get("target"));
   const [mode, setMode] = useState(autoOnline ? "online" : null); // null | "bot" | "online"
   const [winMode, setWinMode] = useState(
     searchParams.get("wm") === "ranking" ? "ranking" : "single"
   ); // single | ranking
   const [difficulty, setDifficulty] = useState("normal"); // easy | normal | hard (Halma)
-  const [playerCount, setPlayerCount] = useState(2); // 2 | 3 (Halma, lawan bot)
+  const [playerCount, setPlayerCount] = useState(
+    autoOnline && tParam === 3 ? 3 : 2
+  ); // 2 | 3 (Halma: lawan bot & target online)
+  const [onlineTarget, setOnlineTarget] = useState(
+    tParam >= 2 && tParam <= 4 ? tParam : 4
+  ); // target pemain room online (Ludo 2..4; default 4)
   const game = GAMES.find((g) => g.id === gameId);
 
   if (!game) {
@@ -76,25 +82,47 @@ export default function GamePage({ playerName }) {
               </div>
             </div>
             <div className="win-mode">
-              <p className="win-mode-label">Jumlah pemain (lawan bot)</p>
+              <p className="win-mode-label">Jumlah pemain</p>
               <div className="win-mode-options">
                 <button
                   className={`wm-option${playerCount === 2 ? " active" : ""}`}
                   onClick={() => setPlayerCount(2)}
                 >
                   <strong>2 pemain</strong>
-                  <small>Kamu vs 1 bot (atas vs bawah)</small>
+                  <small>Atas vs bawah</small>
                 </button>
                 <button
                   className={`wm-option${playerCount === 3 ? " active" : ""}`}
                   onClick={() => setPlayerCount(3)}
                 >
                   <strong>3 pemain</strong>
-                  <small>Kamu vs 2 bot (selang-seling)</small>
+                  <small>online: sisanya bot setelah 30 dtk</small>
                 </button>
               </div>
             </div>
           </>
+        )}
+
+        {game.id === "ludo" && (
+          <div className="win-mode">
+            <p className="win-mode-label">Jumlah pemain (online)</p>
+            <div className="win-mode-options">
+              {[2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  className={`wm-option${onlineTarget === n ? " active" : ""}`}
+                  onClick={() => setOnlineTarget(n)}
+                >
+                  <strong>{n} pemain</strong>
+                  <small>
+                    {n === 2
+                      ? "1 lawan"
+                      : `tunggu ${n} pemain · sisanya bot setelah 30 dtk`}
+                  </small>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {showWinMode && (
@@ -130,11 +158,12 @@ export default function GamePage({ playerName }) {
 
   return (
     <PhaserHost
-      key={`${mode}-${winMode}-${difficulty}-${playerCount}`}
+      key={`${mode}-${winMode}-${difficulty}-${playerCount}-${onlineTarget}`}
       mode={mode}
       winMode={winMode}
       difficulty={difficulty}
       playerCount={playerCount}
+      onlineTarget={onlineTarget}
       playerName={playerName}
       gameId={gameId}
       onExit={() => setMode(null)}
@@ -142,7 +171,7 @@ export default function GamePage({ playerName }) {
   );
 }
 
-function PhaserHost({ mode, winMode, difficulty, playerCount, playerName, gameId, onExit }) {
+function PhaserHost({ mode, winMode, difficulty, playerCount, onlineTarget, playerName, gameId, onExit }) {
   const hostRef = useRef(null);
   const [error, setError] = useState("");
 
@@ -153,7 +182,10 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, playerName, gameId
       return;
     }
     const serverUrl = import.meta.env.VITE_SERVER_URL || "ws://localhost:2567";
-    const opts = { winMode, difficulty, playerCount };
+    // Target room online: Halma pakai pilihan jumlah pemain (2/3), Ludo pakai
+    // selektor target (2/3/4). Offline mengabaikan target.
+    const target = gameId === "halma" ? playerCount : onlineTarget;
+    const opts = { winMode, difficulty, playerCount, target };
     const controller =
       mode === "bot"
         ? new mod.LocalBotController(playerName, opts)
@@ -188,7 +220,7 @@ function PhaserHost({ mode, winMode, difficulty, playerCount, playerName, gameId
       controller.dispose?.();
       phaserGame?.destroy(true);
     };
-  }, [mode, winMode, difficulty, playerCount, playerName, gameId]);
+  }, [mode, winMode, difficulty, playerCount, onlineTarget, playerName, gameId]);
 
   if (error) {
     return (

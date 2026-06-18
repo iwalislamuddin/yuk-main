@@ -1,8 +1,8 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 18 Juni 2026 (sesi 6 — fix gameflow Ular Tangga + Hall of
-> Fame GLOBAL via Turso, semua LIVE di yukmain.web.id).
+> Terakhir diperbarui: 18 Juni 2026 (sesi 7 — online multiplayer: Fase B1
+> presence/discovery LIVE + Fase B2 bot-fill server Ludo/Halma, push ke main).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
@@ -253,6 +253,32 @@ CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian 
    > `app/package-lock.json`) lalu commit lockfile-nya. Validasi: `npm ci
    > --dry-run`.
 
+## Yang sudah dikerjakan (sesi 7 — 18 Juni 2026)
+
+**Online multiplayer: Fase B1 (LIVE) + Fase B2 (push ke main).** Detail lengkap
+ada di bagian **"Konsep Online Multiplayer"** di bawah (B1 & B2 ditandai selesai).
+
+1. **Fase B1 — Presence & Discovery (LIVE):** endpoint `GET /lobby` +
+   metadata room; UI daftar "Sedang menunggu lawan" + tombol Gabung + badge
+   "🟢 N menunggu" di kartu + hitungan online di beranda; keep-alive cron
+   (`.github/workflows/keepalive.yml`). Teruji end-to-end (server+client lokal)
+   lalu di-push & live.
+2. **Fase B2 — Bot-fill server (Ludo & Halma):** target pemain (Ludo 2/3/4
+   default 4, Halma 2/3) + countdown 30 dtk + tombol "Mulai sekarang" → sisa
+   kursi diisi **bot server**; `onLeave` saat main ubah pemain keluar jadi bot;
+   **Ludo 2 pemain ditempatkan diagonal** (refactor `ranking` → posisi-array).
+   Teruji headless (matchmaking, countdown, fill, bot main, onLeave, game tuntas
+   Ludo ~116s/Halma ~35s, 2400 sim ranking) + UI browser (waiting/countdown/
+   auto-start/diagonal). `npm ci --dry-run` lolos (tak ada dep baru).
+
+   > **Catatan tooling (sesi 7):** `.claude/launch.json` preview SENGAJA hanya
+   > menjalankan **client** — preview menyuntik `PORT=5173` ke seluruh proses,
+   > jadi server Colyseus ikut bentrok bila digabung. Untuk uji online lokal:
+   > jalankan server terpisah (`node app/server/index.js` atau `cd app &&
+   > npm run dev`). Untuk simulasi headless pakai `colyseus.js` dari
+   > `app/node_modules/colyseus.js/build/cjs/index.js` (require pakai path gaya
+   > Windows `D:/...`, bukan `/d/...`).
+
 ## Peta fase rilis (monetisasi + online)
 
 - [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
@@ -296,12 +322,36 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
   (lebih andal — GH Actions sering telat & dimatikan setelah 60 hari idle repo).
 
 **Peta fase B (lihat juga "Peta fase rilis"):**
-- [ ] **Fase B1 — Presence & Discovery** (SEDANG DIKERJAKAN sesi 7): endpoint
+- [x] **Fase B1 — Presence & Discovery** (SELESAI sesi 7, LIVE): endpoint
   `/lobby` + metadata room; UI daftar lobi + badge kartu + hitungan online di
-  homepage; keep-alive cron. *Tak butuh bot — langsung pakai utk semua game 2p.*
-- [ ] **Fase B2 — Bot-fill server**: port heuristik bot → `server/bots/`;
-  countdown 30 dtk + tombol "Mulai sekarang"; naikkan `maxClients` (Ludo 4,
-  Halma 3) + perbaiki `onLeave` utk >2 pemain.
+  homepage; keep-alive cron (`.github/workflows/keepalive.yml`).
+- [x] **Fase B2 — Bot-fill server** (SELESAI sesi 7, teruji headless+browser):
+  - Room **target pemain** (Ludo 2/3/4 **default 4**, Halma 2/3) sbg kriteria
+    matchmaking (`filterBy(["mode","target"])`); `maxClients = target`.
+  - **Penempatan seat:** Ludo 2 pemain = **DIAGONAL** (seat 0 vs 2, bukan
+    bersebelahan), 3=[0,1,2], 4=[0,1,2,3] — peta `LUDO_SEATS` di `LudoRoom`.
+    Butuh refactor `logic/ludo.js` (client+server identik): `addPlayer` terima
+    `seat` opsional; **`state.ranking` kini simpan POSISI-ARRAY** (bukan seat)
+    agar konsisten saat seat≠posisi. Divalidasi 2400 sim (2/3/4 × single/ranking).
+    Halma 2p sudah diagonal sejak awal (seat 0 atas vs 3 bawah).
+  - **Countdown 30 dtk** mulai saat >=2 manusia & target>2; **tombol "Mulai
+    sekarang"** (host saja) → isi sisa kursi dgn **bot SERVER** lalu mulai+lock.
+    Auto-fill saat countdown habis. Schema dpt `target`+`startsAt`; scene
+    menampilkan "(X/target)" + sisa detik (ticker 1 dtk) + tombol mulai.
+  - **Bot server**: Ludo heuristik di-inline di `LudoRoom.pickBotToken`; Halma
+    di `server/bots/halma.js` (PORT dari `LocalBotController`, level "normal").
+    Room men-drive giliran bot via `this.clock.setTimeout` (`scheduleBot`,
+    dipanggil di akhir `sync`).
+  - **onLeave**: saat MAIN, pemain keluar → kursinya jadi **bot** (game lanjut,
+    berlaku 2/3/4 pemain); saat MENUNGGU → dibuang & seat di-reindex. `sync`
+    memangkas pemain yg sudah keluar dari schema map.
+  - Teruji: matchmaking target, countdown, startNow, auto-fill seat benar
+    (Ludo warna, Halma seat 0/2/4), bot main, onLeave→bot, **game tuntas**
+    (Ludo ~116s, Halma ~35s headless 2 manusia+bot). UI Ludo/Halma waiting +
+    countdown + auto-start terverifikasi di browser.
+  - *Catatan:* turbo (percepat bot setelah manusia finis di mode ranking)
+    BELUM diport ke server — bot online jalan tempo normal (650–900ms Ludo,
+    620ms Halma). Tidak kritis; bisa ditambah nanti.
 - [ ] **Fase B3 — Ketahanan**: reconnect (`allowReconnection`) + room privat berkode.
 
 ## Kebijakan grafis (KEPUTUSAN — 15 Juni 2026)
@@ -315,19 +365,29 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
 
 ## Langkah berikutnya (belum dikerjakan)
 
-### Prioritas berikutnya (sisa target sesi 6 → sesi 7)
+### Prioritas berikutnya (sesi 7 → sesi 8)
+
+> Yang sudah beres: gameflow Ular Tangga & Hall of Fame global (sesi 6); online
+> presence/discovery (B1) & bot-fill >2 pemain (B2) sesi 7 — lihat blok sesi
+> masing-masing. Sisa target aktif:
+
+0. **VERIFIKASI LIVE Fase B2** (paling dulu sesi 8): setelah deploy, tes di
+   `yukmain.web.id` dgn 2+ perangkat — Ludo 3/4 pemain (countdown + bot-fill +
+   "Mulai sekarang"), Ludo 1v1 (cek diagonal), Halma 3 pemain. Pastikan bot
+   online bergerak & game tuntas. (Lokal sudah teruji; ini konfirmasi produksi.)
 1. **Polish UI** — rapikan tampilan secara umum. **(BELUM)**
-2. ~~Perbaikan gameflow Ular Tangga~~ — **SELESAI sesi 6** (commit `331d337`).
-3. ~~Hall of Fame~~ — **SELESAI sesi 6**: kolom rasio + scalable + **GLOBAL via
-   Turso** (commit `d07a276`). Lanjutan **v2.0**: tambah leaderboard **Mingguan**
-   (rencana lengkap di komentar `lib/storage.js` CATATAN v2.0; chip "Mingguan
-   (segera)" sudah ada di UI — tinggal `ready:true` + isi data per-pekan).
-4. **Online >2 pemain** — Ludo (4) & Halma (3); lihat item di bawah. **(BELUM)**
-5. **Dukungan grafis — MULAI dari DADU.** User akan menyediakan `dice.png` lebih
-   dulu → ini melonggarkan kebijakan "grafis ditunda v2.0": grafis dimulai
-   bertahap, dadu duluan. Taruh di `app/client/public/assets/snakes-ladders/dice.png`
-   (format di `PANDUAN-ASET.md`); engine sudah punya fallback, jadi tinggal pasang
-   file + cek visual. Format dadu sama bisa dipakai ulang untuk Ludo.
+   - Kandidat: tampilan waiting-room/countdown masih digambar di Phaser scene
+     (Ludo pakai-ulang tombol kocok, Halma tombol khusus) — bisa dipercantik.
+2. **Dukungan grafis — MULAI dari DADU.** User akan menyediakan `dice.png` lebih
+   dulu. Taruh di `app/client/public/assets/snakes-ladders/dice.png` (format di
+   `PANDUAN-ASET.md`); engine sudah punya fallback, jadi tinggal pasang file +
+   cek visual. Format dadu sama bisa dipakai ulang untuk Ludo.
+3. **Fase B3 — Ketahanan online**: reconnect (`allowReconnection` Colyseus) agar
+   disconnect sesaat tak langsung jadi bot/kalah; room privat berkode-undang.
+4. **Turbo bot online** (opsional): percepat langkah bot di mode ranking setelah
+   manusia finis (sudah ada di client offline, BELUM diport ke room server).
+5. **Hall of Fame Mingguan** (v2.0): chip "Mingguan (segera)" sudah ada di UI —
+   tinggal `ready:true` + bucket per-pekan (rencana di `lib/storage.js`).
 
 - [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA, kecuali
       **dadu** yang dimulai sesi 6):
@@ -353,9 +413,9 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
       langsung kalah.
 - [ ] Room privat / kode-undang teman: kini auto-matchmaking (`joinOrCreate`).
       Tambah opsi buat-room berkode supaya bisa main dgn teman tertentu.
-- [ ] Online >2 pemain: Ludo (4) & Halma (3) — naikkan `maxClients`
-      (`LudoRoom`/`HalmaRoom`, default 2) + tangani pemain keluar di tengah main
-      (kini `onLeave` hanya benar untuk 2 pemain).
+- [x] **Online >2 pemain: Ludo (4) & Halma (3) — SELESAI (sesi 7, Fase B2).**
+      `maxClients = target` (dipilih host); bot-fill server isi sisa kursi;
+      `onLeave` saat main mengubah pemain keluar jadi bot (benar utk 2/3/4).
 - [ ] Uji visual Halma online (2 tab + server jalan); offline lengkap teruji,
       pola identik Ludo (yg sudah jalan).
 - [x] **Hall of Fame global — SELESAI (sesi 6).** Endpoint `POST/GET /hof`

@@ -129,8 +129,8 @@ const gameServer = new Server({
 // Daftarkan room per game. Game baru = define() baru + file room baru.
 gameServer.define("snakes_ladders", SnakesLaddersRoom);
 // filterBy mode: pemain online hanya dipasangkan dengan mode kemenangan sama.
-gameServer.define("ludo", LudoRoom).filterBy(["mode"]);
-gameServer.define("halma", HalmaRoom).filterBy(["mode"]);
+gameServer.define("ludo", LudoRoom).filterBy(["mode", "target"]);
+gameServer.define("halma", HalmaRoom).filterBy(["mode", "target"]);
 
 httpServer.listen(PORT, () =>
   console.log(`Arena Papan server jalan di ws://localhost:${PORT}`)

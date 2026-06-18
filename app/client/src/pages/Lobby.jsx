@@ -20,7 +20,7 @@ export default function Lobby() {
   // Gabung room menunggu: matchmaking server (joinOrCreate) akan mendaratkan
   // pemain di room yg sesuai game+mode. Cukup buka halaman game dgn mode online.
   const join = (room) => {
-    navigate(`/play/${room.gameId}?online=1&wm=${room.mode}`);
+    navigate(`/play/${room.gameId}?online=1&wm=${room.mode}&target=${room.max}`);
   };
 
   return (

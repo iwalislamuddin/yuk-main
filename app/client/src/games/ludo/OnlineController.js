@@ -11,16 +11,19 @@ export class OnlineController {
     this.url = url;
     this.playerName = playerName;
     this.winMode = opts.winMode === "ranking" ? "ranking" : "single";
+    const t = Number(opts.target);
+    this.target = t >= 2 && t <= 4 ? t : 2;
     this.cb = null;
     this.lastState = null;
   }
 
   async connect() {
     this.client = new Client(this.url);
-    // mode dikirim sebagai kriteria matchmaking (lihat filterBy di server).
+    // mode + target jadi kriteria matchmaking (lihat filterBy di server).
     this.room = await this.client.joinOrCreate("ludo", {
       name: this.playerName,
-      mode: this.winMode
+      mode: this.winMode,
+      target: this.target
     });
     this.room.onStateChange((state) => {
       this.lastState = this.mapState(state);
@@ -53,6 +56,8 @@ export class OnlineController {
       turnId: state.currentTurn,
       myId,
       myIndex: me ? me.color : -1,
+      target: state.target || players.length,
+      startsAt: state.startsAt || 0,
       lastDice: state.lastDice,
       dicePending: state.dicePending,
       legalTokens: Array.from(state.legalTokens || []),
@@ -72,6 +77,11 @@ export class OnlineController {
 
   requestMove(tokenIndex) {
     this.room?.send("move", { token: tokenIndex });
+  }
+
+  // Host menekan "Mulai sekarang" saat menunggu: isi sisa kursi dgn bot.
+  requestStart() {
+    this.room?.send("startNow");
   }
 
   dispose() {

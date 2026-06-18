@@ -25,6 +25,8 @@ class HalmaState extends Schema {
     this.phase = "waiting"; // waiting | playing | finished
     this.mode = "single"; // single | ranking
     this.playerCount = 2;
+    this.target = 2; // jumlah pemain target room (2 atau 3)
+    this.startsAt = 0; // epoch ms akhir countdown standby (0 = tak ada)
     this.ranking = new ArraySchema(); // nama pemain urut finis
     // Langkah terakhir (untuk animasi di client).
     this.lastFrom = -1;
@@ -40,6 +42,8 @@ defineTypes(HalmaState, {
   phase: "string",
   mode: "string",
   playerCount: "number",
+  target: "number",
+  startsAt: "number",
   ranking: ["string"],
   lastFrom: "number",
   lastTo: "number",

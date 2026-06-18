@@ -46,8 +46,11 @@ function createState(mode = "single") {
   };
 }
 
-function addPlayer(state, { id, name, isBot = false }) {
-  const index = state.players.length;
+// `seat` = warna/kursi papan (0..3). Bila tak diberikan, pakai urutan gabung
+// (default 0,1,2,3). Memisahkan seat dari posisi-array dipakai untuk menempatkan
+// 2 pemain (online 1v1) di sudut DIAGONAL (mis. seat 0 vs 2), bukan bersebelahan.
+function addPlayer(state, { id, name, isBot = false, seat }) {
+  const index = seat === undefined ? state.players.length : seat;
   state.players.push({
     id,
     name,
@@ -136,9 +139,11 @@ function commitMove(state, tokenIndex) {
   state.dicePending = false;
   state.legalTokens = [];
 
+  // ranking menyimpan POSISI-ARRAY pemain (bukan seat) agar konsisten dengan
+  // advanceTurn/toView/winner — penting saat seat != posisi-array (2p diagonal).
   const justFinished = isFinished(player);
-  if (justFinished && !state.ranking.includes(player.index)) {
-    state.ranking.push(player.index);
+  if (justFinished && !state.ranking.includes(state.currentIndex)) {
+    state.ranking.push(state.currentIndex);
   }
 
   if (state.mode === "single") {
@@ -149,9 +154,11 @@ function commitMove(state, tokenIndex) {
       return;
     }
   } else {
-    const remaining = state.players.filter((p) => !state.ranking.includes(p.index));
+    const remaining = state.players
+      .map((_, i) => i)
+      .filter((i) => !state.ranking.includes(i));
     if (remaining.length <= 1) {
-      if (remaining.length === 1) state.ranking.push(remaining[0].index); // juru kunci
+      if (remaining.length === 1) state.ranking.push(remaining[0]); // juru kunci
       state.phase = "finished";
       state.winner = state.players[state.ranking[0]].name; // juara 1
       state.sixStreak = 0;

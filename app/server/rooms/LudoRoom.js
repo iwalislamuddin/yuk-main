@@ -3,21 +3,34 @@ const { LudoPlayer, LudoState } = require("./ludoSchema");
 const Ludo = require("../logic/ludo");
 const hof = require("../hof/store");
 
+const COUNTDOWN_MS = 30_000; // jeda standby sebelum sisa kursi diisi bot
+
+// Seat (warna/sudut) yg dipakai per jumlah target. 2 pemain = DIAGONAL (seat 0
+// vs 2) supaya tidak bersebelahan; 3/4 pakai urutan biasa.
+const LUDO_SEATS = { 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3] };
+
 /**
  * Room Ludo. Server otoritatif:
  * - dadu dilempar di server, langkah divalidasi di server,
- * - state plain (Ludo.logic) jadi sumber kebenaran, lalu dicermin ke schema
- *   Colyseus supaya tersinkron ke semua client.
+ * - state plain (Ludo.logic) jadi sumber kebenaran, lalu dicermin ke schema.
  *
- * Default 2 pemain agar match cepat penuh; naikkan maxClients ke 4 untuk
- * Ludo penuh (lihat catatan di onLeave soal pemain keluar di tengah main).
+ * Fase B2 (bot-fill): room punya TARGET pemain (2..4, dipilih host & jadi
+ * kriteria matchmaking lewat filterBy). Saat sudah ada >=2 manusia tapi belum
+ * penuh dan target>2, jalan countdown 30 dtk; saat habis (atau host menekan
+ * "Mulai sekarang") sisa kursi diisi BOT lalu game mulai. Bot dijalankan di
+ * server (heuristik identik LocalBotController client).
  */
 class LudoRoom extends Room {
   onCreate(options) {
-    this.maxClients = 2;
+    const t = Number(options?.target);
+    this.target = t >= 2 && t <= 4 ? t : 2;
+    this.maxClients = this.target;
     const mode = options?.mode === "ranking" ? "ranking" : "single";
     this.gameMode = mode;
     this.logic = Ludo.createState(mode);
+    this.startsAt = 0; // epoch ms akhir countdown (0 = tak ada)
+    this.countdownTimer = null;
+    this.botTimer = null;
     this.setState(new LudoState());
 
     this.onMessage("roll", (client) => {
@@ -30,6 +43,13 @@ class LudoRoom extends Room {
       Ludo.move(this.logic, Number(msg?.token));
       this.sync();
     });
+    // Host menekan "Mulai sekarang": isi sisa kursi dgn bot lalu mulai.
+    this.onMessage("startNow", (client) => {
+      if (this.logic.phase !== "waiting") return;
+      if (this.logic.players.length < 2) return;
+      if (this.logic.players[0]?.id !== client.sessionId) return; // host saja
+      this.fillAndStart();
+    });
   }
 
   isTurn(sessionId) {
@@ -38,39 +58,147 @@ class LudoRoom extends Room {
   }
 
   onJoin(client, options) {
+    const seat = LUDO_SEATS[this.target][this.logic.players.length];
     Ludo.addPlayer(this.logic, {
       id: client.sessionId,
       name: String(options?.name || "Pemain").slice(0, 16),
-      isBot: false
+      isBot: false,
+      seat
     });
     // Metadata untuk lobi (GET /lobby): host = pemain pertama.
     if (this.logic.players.length === 1) {
       this.setMetadata({
         gameId: "ludo",
         host: this.logic.players[0].name,
-        mode: this.gameMode
+        mode: this.gameMode,
+        target: this.target
       });
     }
-    if (this.logic.players.length >= this.maxClients) {
+
+    if (this.logic.players.length >= this.target) {
+      // Penuh oleh manusia -> langsung mulai.
+      this.clearCountdown();
       Ludo.startGame(this.logic);
       this.lock();
+    } else if (this.logic.players.length >= 2 && this.target > 2 && !this.countdownTimer) {
+      // Cukup utk mulai dgn bot: beri jeda standby.
+      this.startCountdown();
     }
     this.sync();
   }
 
+  startCountdown() {
+    this.startsAt = Date.now() + COUNTDOWN_MS;
+    this.countdownTimer = this.clock.setTimeout(() => this.fillAndStart(), COUNTDOWN_MS);
+  }
+
+  clearCountdown() {
+    if (this.countdownTimer) {
+      this.countdownTimer.clear();
+      this.countdownTimer = null;
+    }
+    this.startsAt = 0;
+  }
+
+  // Isi sisa kursi dengan bot, mulai game, kunci room.
+  fillAndStart() {
+    if (this.logic.phase !== "waiting") return;
+    this.clearCountdown();
+    while (this.logic.players.length < this.target) {
+      const i = this.logic.players.length;
+      const seat = LUDO_SEATS[this.target][i];
+      Ludo.addPlayer(this.logic, {
+        id: `bot-${i}`,
+        name: `Bot ${Ludo.COLOR_NAMES[seat]}`,
+        isBot: true,
+        seat
+      });
+    }
+    Ludo.startGame(this.logic);
+    this.lock();
+    this.sync();
+  }
+
   onLeave(client) {
-    // Pemain keluar saat main: untuk room 2 pemain, pemain tersisa menang.
-    // (Untuk 4 pemain perlu penanganan lebih halus — lihat catatan di atas.)
+    const id = client.sessionId;
     if (this.logic.phase === "playing") {
-      const others = this.logic.players.filter((p) => p.id !== client.sessionId);
-      if (others.length === 1) {
-        this.logic.phase = "finished";
-        this.logic.winner = others[0].name;
-        this.logic.dicePending = false;
-        this.logic.legalTokens = [];
-        this.sync();
+      // Pemain keluar saat main: lanjutkan dgn bot (berlaku utk 2/3/4 pemain).
+      const p = this.logic.players.find((x) => x.id === id);
+      if (p) p.isBot = true;
+      this.sync();
+    } else {
+      // Masih menunggu: buang pemain & reindex kursi.
+      this.logic.players = this.logic.players.filter((x) => x.id !== id);
+      this.logic.players.forEach((p, i) => (p.index = LUDO_SEATS[this.target][i]));
+      if (this.logic.players.length < 2) this.clearCountdown();
+      if (this.logic.players[0]) {
+        this.setMetadata({
+          gameId: "ludo",
+          host: this.logic.players[0].name,
+          mode: this.gameMode,
+          target: this.target
+        });
+      }
+      this.sync();
+    }
+  }
+
+  // Jalankan giliran bot di server (sekali per panggilan; rantai lewat sync).
+  scheduleBot() {
+    if (this.botTimer) {
+      this.botTimer.clear();
+      this.botTimer = null;
+    }
+    if (this.logic.phase !== "playing" || this.logic.winner) return;
+    const p = Ludo.currentPlayer(this.logic);
+    if (!p || !p.isBot) return;
+    const delay = this.logic.dicePending ? 650 : 900;
+    this.botTimer = this.clock.setTimeout(() => {
+      this.botTimer = null;
+      if (this.logic.phase !== "playing" || this.logic.winner) return;
+      const cur = Ludo.currentPlayer(this.logic);
+      if (!cur || !cur.isBot) return;
+      if (!this.logic.dicePending) Ludo.roll(this.logic);
+      else Ludo.move(this.logic, this.pickBotToken());
+      this.sync();
+    }, delay);
+  }
+
+  // Heuristik bot identik dgn client LocalBotController: utamakan makan lawan,
+  // lalu pulangkan pion, lalu keluarkan dari kandang, sisanya dorong terdepan.
+  pickBotToken() {
+    const player = Ludo.currentPlayer(this.logic);
+    const dice = this.logic.lastDice;
+    let best = this.logic.legalTokens[0];
+    let bestScore = -Infinity;
+
+    for (const i of this.logic.legalTokens) {
+      const from = player.tokens[i];
+      const to = from === Ludo.YARD ? 0 : from + dice;
+      const cell = Ludo.ringCell(player.index, to);
+
+      let capture = false;
+      if (cell !== null && !Ludo.SAFE_CELLS.has(cell)) {
+        for (const other of this.logic.players) {
+          if (other.index === player.index) continue;
+          if (other.tokens.some((op) => Ludo.ringCell(other.index, op) === cell)) {
+            capture = true;
+          }
+        }
+      }
+
+      const score =
+        (capture ? 100 : 0) +
+        (to === Ludo.HOME_STEP ? 60 : 0) +
+        (from === Ludo.YARD ? 40 : 0) +
+        to;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
       }
     }
+    return best;
   }
 
   // Cermin state plain -> schema Colyseus.
@@ -85,6 +213,8 @@ class LudoRoom extends Room {
     s.dicePending = L.dicePending;
     s.winner = L.winner || "";
     s.mode = L.mode;
+    s.target = this.target;
+    s.startsAt = this.startsAt || 0;
 
     for (const p of L.players) {
       let sp = s.players.get(p.id);
@@ -97,6 +227,11 @@ class LudoRoom extends Room {
       sp.index = p.index;
       for (let i = 0; i < 4; i++) sp.tokens[i] = p.tokens[i];
     }
+    // Buang pemain yg sudah tidak ada (keluar saat menunggu).
+    const ids = new Set(L.players.map((p) => p.id));
+    for (const key of [...s.players.keys()]) {
+      if (!ids.has(key)) s.players.delete(key);
+    }
 
     s.legalTokens.splice(0);
     L.legalTokens.forEach((t) => s.legalTokens.push(t));
@@ -105,6 +240,7 @@ class LudoRoom extends Room {
     L.ranking.forEach((idx) => s.ranking.push(L.players[idx].name));
 
     this.maybeRecordFinish();
+    this.scheduleBot();
   }
 
   // Catat hasil match ke Hall of Fame global saat ada pemenang (sekali, otoritatif).

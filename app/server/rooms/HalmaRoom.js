@@ -1,25 +1,46 @@
 const { Room } = require("colyseus");
 const { HalmaPlayer, HalmaState } = require("./halmaSchema");
 const Halma = require("../logic/halma");
+const { pickBotMove } = require("../bots/halma");
 const hof = require("../hof/store");
+
+const COUNTDOWN_MS = 30_000;
+const BOT_LEVEL = "normal"; // tingkat bot pengisi online
 
 /**
  * Room Halma. Server otoritatif: langkah divalidasi di server (logic Halma jadi
- * sumber kebenaran, lalu dicermin ke schema Colyseus). Online = 2 pemain
- * (sudut atas vs bawah). filterBy mode supaya dipasangkan dgn mode kemenangan sama.
+ * sumber kebenaran, lalu dicermin ke schema). Fase B2: room punya TARGET pemain
+ * (2 atau 3, jadi kriteria matchmaking lewat filterBy). Saat >=2 manusia & belum
+ * penuh dan target>2, countdown 30 dtk; habis (atau host "Mulai sekarang") sisa
+ * kursi diisi bot. Bot dijalankan server (heuristik identik LocalBotController).
  */
 class HalmaRoom extends Room {
   onCreate(options) {
-    this.maxClients = 2;
+    const t = Number(options?.target);
+    this.target = t === 3 ? 3 : 2;
+    this.maxClients = this.target;
     const mode = options?.mode === "ranking" ? "ranking" : "single";
     this.gameMode = mode;
-    this.logic = Halma.createState(mode, 2);
+    this.logic = Halma.createState(mode, this.target);
+    this.startsAt = 0;
+    this.countdownTimer = null;
+    this.botTimer = null;
+    this.banned = []; // langkah terakhir per index pemain (anti-osilasi)
     this.setState(new HalmaState());
 
     this.onMessage("move", (client, msg) => {
       if (!this.isTurn(client.sessionId)) return;
-      Halma.move(this.logic, Number(msg?.from), Number(msg?.to));
+      const idx = this.logic.currentIndex;
+      const from = Number(msg?.from);
+      const to = Number(msg?.to);
+      if (Halma.move(this.logic, from, to)) this.banned[idx] = { from, to };
       this.sync();
+    });
+    this.onMessage("startNow", (client) => {
+      if (this.logic.phase !== "waiting") return;
+      if (this.logic.players.length < 2) return;
+      if (this.logic.players[0]?.id !== client.sessionId) return; // host saja
+      this.fillAndStart();
     });
   }
 
@@ -34,31 +55,102 @@ class HalmaRoom extends Room {
       name: String(options?.name || "Pemain").slice(0, 16),
       isBot: false
     });
-    // Metadata untuk lobi (GET /lobby): host = pemain pertama.
     if (this.logic.players.length === 1) {
       this.setMetadata({
         gameId: "halma",
         host: this.logic.players[0].name,
-        mode: this.gameMode
+        mode: this.gameMode,
+        target: this.target
       });
     }
-    if (this.logic.players.length >= this.maxClients) {
+
+    if (this.logic.players.length >= this.target) {
+      this.clearCountdown();
       Halma.startGame(this.logic);
+      this.banned = this.logic.players.map(() => null);
       this.lock();
+    } else if (this.logic.players.length >= 2 && this.target > 2 && !this.countdownTimer) {
+      this.startCountdown();
     }
     this.sync();
   }
 
-  onLeave(client) {
-    // Room 2 pemain: bila satu keluar saat main, yang tersisa menang.
-    if (this.logic.phase === "playing") {
-      const others = this.logic.players.filter((p) => p.id !== client.sessionId);
-      if (others.length === 1) {
-        this.logic.phase = "finished";
-        this.logic.winner = others[0].name;
-        this.sync();
-      }
+  startCountdown() {
+    this.startsAt = Date.now() + COUNTDOWN_MS;
+    this.countdownTimer = this.clock.setTimeout(() => this.fillAndStart(), COUNTDOWN_MS);
+  }
+
+  clearCountdown() {
+    if (this.countdownTimer) {
+      this.countdownTimer.clear();
+      this.countdownTimer = null;
     }
+    this.startsAt = 0;
+  }
+
+  fillAndStart() {
+    if (this.logic.phase !== "waiting") return;
+    this.clearCountdown();
+    const seats = Halma.SEATS_BY_COUNT[this.target];
+    while (this.logic.players.length < this.target) {
+      const seat = seats[this.logic.players.length % seats.length];
+      Halma.addPlayer(this.logic, {
+        id: `bot-${this.logic.players.length}`,
+        name: `Bot ${Halma.CORNER_NAMES[seat]}`,
+        isBot: true
+      });
+    }
+    Halma.startGame(this.logic);
+    this.banned = this.logic.players.map(() => null);
+    this.lock();
+    this.sync();
+  }
+
+  onLeave(client) {
+    const id = client.sessionId;
+    if (this.logic.phase === "playing") {
+      const p = this.logic.players.find((x) => x.id === id);
+      if (p) p.isBot = true; // lanjut dgn bot
+      this.sync();
+    } else {
+      this.logic.players = this.logic.players.filter((x) => x.id !== id);
+      // Reindex seat sesuai urutan baru (game belum mulai).
+      const seats = Halma.SEATS_BY_COUNT[this.target];
+      this.logic.players.forEach((p, i) => (p.seat = seats[i % seats.length]));
+      if (this.logic.players.length < 2) this.clearCountdown();
+      if (this.logic.players[0]) {
+        this.setMetadata({
+          gameId: "halma",
+          host: this.logic.players[0].name,
+          mode: this.gameMode,
+          target: this.target
+        });
+      }
+      this.sync();
+    }
+  }
+
+  scheduleBot() {
+    if (this.botTimer) {
+      this.botTimer.clear();
+      this.botTimer = null;
+    }
+    if (this.logic.phase !== "playing" || this.logic.winner) return;
+    const idx = this.logic.currentIndex;
+    const p = this.logic.players[idx];
+    if (!p || !p.isBot) return;
+    this.botTimer = this.clock.setTimeout(() => {
+      this.botTimer = null;
+      if (this.logic.phase !== "playing" || this.logic.winner) return;
+      const i = this.logic.currentIndex;
+      const cur = this.logic.players[i];
+      if (!cur || !cur.isBot) return;
+      const m = pickBotMove(this.logic, i, BOT_LEVEL, this.banned[i]);
+      if (m && Halma.move(this.logic, m.from, m.to)) {
+        this.banned[i] = { from: m.from, to: m.to };
+      }
+      this.sync();
+    }, 620);
   }
 
   sync() {
@@ -71,6 +163,8 @@ class HalmaRoom extends Room {
     s.winner = L.winner || "";
     s.mode = L.mode;
     s.playerCount = L.playerCount;
+    s.target = this.target;
+    s.startsAt = this.startsAt || 0;
 
     for (const p of L.players) {
       let sp = s.players.get(p.id);
@@ -84,6 +178,10 @@ class HalmaRoom extends Room {
       sp.pieces.splice(0);
       p.pieces.forEach((h) => sp.pieces.push(h));
     }
+    const ids = new Set(L.players.map((p) => p.id));
+    for (const key of [...s.players.keys()]) {
+      if (!ids.has(key)) s.players.delete(key);
+    }
 
     s.ranking.splice(0);
     L.ranking.forEach((idx) => s.ranking.push(L.players[idx].name));
@@ -96,9 +194,9 @@ class HalmaRoom extends Room {
     if (lm) lm.path.forEach((h) => s.lastPath.push(h));
 
     this.maybeRecordFinish();
+    this.scheduleBot();
   }
 
-  // Catat hasil match ke Hall of Fame global saat ada pemenang (sekali, otoritatif).
   maybeRecordFinish() {
     if (this.recorded || !this.logic.winner) return;
     this.recorded = true;

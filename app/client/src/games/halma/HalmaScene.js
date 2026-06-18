@@ -149,6 +149,57 @@ export default class HalmaScene extends Phaser.Scene {
       color: "#5c5246",
       fontFamily: "Fredoka, sans-serif"
     });
+
+    // Tombol "Mulai sekarang" (online, host saja, saat menunggu) — tersembunyi
+    // sampai dibutuhkan.
+    this.startBtn = this.add
+      .rectangle(280, 648, 260, 50, 0xe8a13c)
+      .setStrokeStyle(2, 0xb97a1f)
+      .setDepth(40)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        const v = this.committedView;
+        if (v && v.phase === "waiting" && v.mySeat === 0 && v.players.length >= 2) {
+          this.deps.controller.requestStart?.();
+        }
+      });
+    this.startLabel = this.add
+      .text(280, 648, "MULAI SEKARANG (ISI BOT)", {
+        fontSize: "15px",
+        color: "#3b2a08",
+        fontFamily: "Fredoka, sans-serif",
+        fontStyle: "bold"
+      })
+      .setOrigin(0.5)
+      .setDepth(41)
+      .setVisible(false);
+
+    // Ticker countdown standby (online): perbarui sisa detik tiap 1 dtk.
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        const v = this.committedView;
+        if (v && v.phase === "waiting" && v.startsAt > 0) this.renderWaiting(v);
+      }
+    });
+  }
+
+  // Tampilan saat menunggu pemain (online): jumlah, countdown, tombol mulai.
+  renderWaiting(view) {
+    const humans = view.players.length;
+    const target = view.target || humans;
+    const canStart = view.mySeat === 0 && humans >= 2;
+    this.turnText.setText(`Menunggu pemain... (${humans}/${target})`).setColor("#143b30");
+    if (view.startsAt > 0) {
+      const secs = Math.max(0, Math.ceil((view.startsAt - Date.now()) / 1000));
+      this.infoText.setText(`Mulai otomatis dengan bot dalam ${secs} dtk…`);
+    } else {
+      this.infoText.setText("Buka tab/perangkat lain → Main online.");
+    }
+    this.startBtn.setVisible(canStart);
+    this.startLabel.setVisible(canStart);
   }
 
   // ---------- Kelereng (pion) ----------
@@ -405,9 +456,13 @@ export default class HalmaScene extends Phaser.Scene {
     this.committedView = view;
     this.updateTurnIndicator(view);
 
+    if (view.phase !== "waiting") {
+      this.startBtn.setVisible(false);
+      this.startLabel.setVisible(false);
+    }
+
     if (view.phase === "waiting") {
-      this.turnText.setText("Menunggu lawan...").setColor("#143b30");
-      this.infoText.setText("Buka tab/perangkat lain → Main online.");
+      this.renderWaiting(view);
     } else if (view.winner) {
       this.turnText.setText(`${view.winner} menang!`).setColor("#143b30");
       this.infoText.setText(
