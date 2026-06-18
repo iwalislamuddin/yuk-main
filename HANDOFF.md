@@ -1,7 +1,8 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 18 Juni 2026 (sesi 5 — deploy SELESAI & LIVE di yukmain.web.id).
+> Terakhir diperbarui: 18 Juni 2026 (sesi 6 — fix gameflow Ular Tangga + Hall of
+> Fame GLOBAL via Turso, semua LIVE di yukmain.web.id).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
@@ -201,6 +202,57 @@ ke host berbayar untuk kapasitas. Agar lolos kebijakan AdSense, situs tidak bole
 `yuk-main-server.onrender.com`. Domain dibeli di Domainesia; `.web.id` tak dijual
 CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian D, Cara A).
 
+## Yang sudah dikerjakan (sesi 6 — 18 Juni 2026)
+
+**Perbaikan gameflow Ular Tangga + Hall of Fame GLOBAL (Turso). Semua LIVE.**
+
+1. **Gameflow Ular Tangga** (`SnakesLaddersScene.js`, commit `331d337`): giliran
+   lempar dadu kini aktif SETELAH animasi pin selesai (bukan saat state datang).
+   Pakai pola "commit" seperti Ludo: status (teks giliran, dadu, tombol kocok)
+   diterapkan lewat job `{type:"commit"}` di ujung antrean animasi; tombol kocok
+   dijaga `isBusy()` agar tak bisa diklik selagi pin lawan bergerak. Berlaku
+   online & lawan bot (antrean scene yang menyerialkan). Diverifikasi di browser
+   (sampling state: tombol tetap nonaktif selama jendela "giliran-logis sudah
+   pindah tapi pin masih bergerak").
+
+2. **Hall of Fame v1.0 — kolom rasio + scalable + GLOBAL lintas perangkat**
+   (commit `d07a276`; perbaikan lockfile `87437d1`):
+   - **UI** (`HallOfFame.jsx`): kolom **Rasio** (menang/main, %), selektor
+     **Periode** ("Sepanjang Masa" aktif; "Mingguan" disiapkan utk v2.0 = chip
+     nonaktif "(segera)"), filter game scalable dari registry. Menampilkan **data
+     global** dari server, dengan **fallback lokal** + pesan saat server tak
+     terjangkau. `lib/storage.js` `buildLeaderboard` menerima `entries`.
+   - **Server global** (Turso/libSQL): `app/server/hof/store.js` = store
+     PLUGGABLE (Turso bila env diisi, else in-memory). Endpoint `GET /hof` (baris
+     per nama+game) & `POST /hof` (hasil LAWAN-BOT saja, source dipaksa "bot") +
+     validasi input + rate limit per-IP (`app/server/index.js`). Room Ular
+     Tangga/Ludo/Halma mencatat hasil **online OTORITATIF** (source "online",
+     sekali per match via `recordFinish`/`maybeRecordFinish`, tak lewat client).
+   - **Client**: `lib/hofApi.js` (POST hasil bot + GET leaderboard via
+     `VITE_SERVER_URL`, ubah skema ws→http). `GamePage` kirim hasil lawan-bot ke
+     global (online sudah dicatat server, jadi tak dobel).
+   - **Keputusan cakupan (user):** leaderboard menghitung **online + lawan-bot**.
+     Hasil bot client-reported BISA dipalsukan oleh yang paham DevTools, tapi
+     awam tidak & motif rendah (situs hobi). Pengaman: validasi + rate limit +
+     kolom `source` (online/bot) untuk filter/pembobotan nanti. Hasil online tak
+     bisa dipalsukan. Bila ada abuse → perketat (online-saja / tambah akun).
+   - **DB**: Turso (libSQL), free tier persisten. Panduan lengkap di
+     **`PANDUAN-TURSO.md`**. Env di Render: `TURSO_DATABASE_URL` +
+     `TURSO_AUTH_TOKEN` (sudah diisi user; `render.yaml` deklarasi `sync:false`).
+     Tabel `hof` dibuat otomatis. Tanpa env → server pakai in-memory (TIDAK
+     crash). Cek log Render: `[hof] store: Turso (persisten)`.
+   - Diverifikasi lokal end-to-end (HTTP /hof, match online tercatat otoritatif,
+     halaman global + fallback) lalu **LIVE** (server `/hof` balas JSON; Pages
+     rebuild). `@libsql/client` ditambah ke deps server.
+
+   > **Jebakan deploy ke-3 (catat agar tak terulang):** menambah dependensi ke
+   > `package.json` secara manual TANPA memperbarui `package-lock.json` → build
+   > **Cloudflare Pages GAGAL** (`npm ci` butuh lockfile sinkron: error
+   > "Missing ... from lock file"). Render lolos karena pakai `npm install`,
+   > bukan `npm ci`. **Perbaikan:** jalankan `npm install` di `app/` (memperbarui
+   > `app/package-lock.json`) lalu commit lockfile-nya. Validasi: `npm ci
+   > --dry-run`.
+
 ## Peta fase rilis (monetisasi + online)
 
 - [x] **Fase 1 — Struktur situs publik + blog** (sesi 4, selesai). Konten siap
@@ -227,13 +279,14 @@ CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian 
 
 ## Langkah berikutnya (belum dikerjakan)
 
-### Prioritas sesi 6 (ditetapkan user di akhir sesi 5)
-1. **Polish UI** — rapikan tampilan secara umum.
-2. **Perbaikan gameflow Ular Tangga** — ada alur kecil yang mau dibetulkan
-   (detail spesifik akan diberikan user saat sesi 6).
-3. **Hall of Fame** — kembangkan (kini baru lokal per-perangkat di
-   `pages/HallOfFame.jsx`; lihat item "Hall of Fame global" di bawah).
-4. **Online >2 pemain** — Ludo (4) & Halma (3); lihat item di bawah.
+### Prioritas berikutnya (sisa target sesi 6 → sesi 7)
+1. **Polish UI** — rapikan tampilan secara umum. **(BELUM)**
+2. ~~Perbaikan gameflow Ular Tangga~~ — **SELESAI sesi 6** (commit `331d337`).
+3. ~~Hall of Fame~~ — **SELESAI sesi 6**: kolom rasio + scalable + **GLOBAL via
+   Turso** (commit `d07a276`). Lanjutan **v2.0**: tambah leaderboard **Mingguan**
+   (rencana lengkap di komentar `lib/storage.js` CATATAN v2.0; chip "Mingguan
+   (segera)" sudah ada di UI — tinggal `ready:true` + isi data per-pekan).
+4. **Online >2 pemain** — Ludo (4) & Halma (3); lihat item di bawah. **(BELUM)**
 5. **Dukungan grafis — MULAI dari DADU.** User akan menyediakan `dice.png` lebih
    dulu → ini melonggarkan kebijakan "grafis ditunda v2.0": grafis dimulai
    bertahap, dadu duluan. Taruh di `app/client/public/assets/snakes-ladders/dice.png`
@@ -269,8 +322,12 @@ CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian 
       (kini `onLeave` hanya benar untuk 2 pemain).
 - [ ] Uji visual Halma online (2 tab + server jalan); offline lengkap teruji,
       pola identik Ludo (yg sudah jalan).
-- [ ] Hall of Fame global: endpoint `POST/GET /hof` di `app/server/index.js`
-      (TODO sudah ada), simpan di SQLite/Postgres, leaderboard lintas perangkat.
+- [x] **Hall of Fame global — SELESAI (sesi 6).** Endpoint `POST/GET /hof`
+      (`app/server/index.js`) + store `app/server/hof/store.js` (Turso/libSQL,
+      fallback in-memory). Hasil online otoritatif dari room; hasil lawan-bot via
+      `POST /hof`. Client baca global + fallback lokal. Setup DB: `PANDUAN-TURSO.md`.
+      Lanjutan: leaderboard **Mingguan** (v2.0); reconnect agar disconnect tak
+      langsung tercatat kalah/menang.
 
 - [ ] Game berikutnya di roadmap: setelah online matang, game papan baru.
 
@@ -283,6 +340,13 @@ CF Registrar → jalur nameserver Domainesia → Cloudflare (`DEPLOY.md` bagian 
   - Halma: `client/src/games/halma/logic.js` & `server/logic/halma.js`.
   (Bot offline pakai logika client; online pakai logika server — keduanya
   harus berperilaku sama.)
+- **Hall of Fame (data flow):** data GLOBAL ada di server `app/server/hof/store.js`
+  (Turso bila env diisi, else in-memory). Hasil **online** dicatat OTORITATIF
+  oleh room; hasil **lawan-bot** dikirim client via `POST /hof` (`lib/hofApi.js`).
+  `HallOfFame.jsx` baca global, fallback ke localStorage saat server mati.
+  **Saat menambah game baru:** selain langkah game biasa, daftarkan `id`-nya di
+  `KNOWN_GAMES` (`app/server/hof/store.js`) supaya hasilnya diterima server.
+  Filter game di UI sudah otomatis dari registry `GAMES`.
 - **Pola tambah game baru**: folder `games/<id>/` berisi `logic.js`,
   `<Game>Scene.js`, `createGame.js`, `LocalBotController.js`,
   `OnlineController.js`, `index.js`; daftarkan di `GAME_MODULES`
