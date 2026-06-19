@@ -157,6 +157,14 @@ class HalmaRoom extends Room {
     }
   }
 
+  // Turbo: mode peringkat, semua MANUSIA sudah finis (posisi-array ada di
+  // ranking). Sisa giliran cuma antar-bot — percepat (selaras client offline).
+  isTurbo() {
+    const L = this.logic;
+    if (L.mode !== "ranking") return false;
+    return L.players.every((p, i) => p.isBot || L.ranking.includes(i));
+  }
+
   scheduleBot() {
     if (this.botTimer) {
       this.botTimer.clear();
@@ -166,6 +174,7 @@ class HalmaRoom extends Room {
     const idx = this.logic.currentIndex;
     const p = this.logic.players[idx];
     if (!p || !p.isBot) return;
+    const delay = this.isTurbo() ? 120 : 620;
     this.botTimer = this.clock.setTimeout(() => {
       this.botTimer = null;
       if (this.logic.phase !== "playing" || this.logic.winner) return;
@@ -177,7 +186,7 @@ class HalmaRoom extends Room {
         this.banned[i] = { from: m.from, to: m.to };
       }
       this.sync();
-    }, 620);
+    }, delay);
   }
 
   sync() {

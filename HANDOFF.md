@@ -281,6 +281,28 @@ ada di bagian **"Konsep Online Multiplayer"** di bawah (B1 & B2 ditandai selesai
    > `app/node_modules/colyseus.js/build/cjs/index.js` (require pakai path gaya
    > Windows `D:/...`, bukan `/d/...`).
 
+## Yang sudah dikerjakan (sesi 9 — 19 Juni 2026)
+
+**Turbo bot online (mode peringkat).** Memport "turbo" dari client offline ke room
+server. Saat mode peringkat dan **semua pemain MANUSIA sudah finis**, sisa giliran
+hanya antar-bot menentukan juru kunci → langkah bot dipercepat (tak perlu ditonton
+lama). Selaras dengan `LocalBotController` offline.
+
+1. **`LudoRoom.isTurbo()`** + **`HalmaRoom.isTurbo()`** (`app/server/rooms/`):
+   `mode === "ranking" && players.every((p,i) => p.isBot || ranking.includes(i))`.
+   `ranking` menyimpan POSISI-ARRAY pemain, jadi `ranking.includes(i)` = pemain ke-i
+   sudah finis. Kalau semua manusia finis (atau semua peserta sudah jadi bot) → turbo.
+2. **`scheduleBot()` delay**:
+   - Ludo: turbo `dicePending?90:130` ms (vs normal `650:900`).
+   - Halma: turbo `120` ms (vs normal `620`). Nilai meniru client offline persis.
+3. **Diverifikasi headless** (`app/server/rooms/turbo.test.cjs`, 8 asersi): memanggil
+   method NYATA via `prototype.isTurbo.call({logic})` atas state logic asli — turbo OFF
+   saat manusia belum finis, ON saat finis, OFF di mode single, dan (2 manusia) ON
+   hanya saat KEDUANYA finis. Server-only; tak ada dep baru.
+
+> **Keputusan user (sesi 9):** room privat 1v1 murni & Hall of Fame Mingguan
+> DITUNDA ke future development (v2.0). Lihat "Langkah berikutnya" item 5 & 6.
+
 ## Yang sudah dikerjakan (sesi 8 — 18 Juni 2026)
 
 **Fase B3 bagian 1: RECONNECT (ketahanan online).** Pemain yang putus tak sengaja
@@ -442,9 +464,8 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
     (Ludo warna, Halma seat 0/2/4), bot main, onLeave→bot, **game tuntas**
     (Ludo ~116s, Halma ~35s headless 2 manusia+bot). UI Ludo/Halma waiting +
     countdown + auto-start terverifikasi di browser.
-  - *Catatan:* turbo (percepat bot setelah manusia finis di mode ranking)
-    BELUM diport ke server — bot online jalan tempo normal (650–900ms Ludo,
-    620ms Halma). Tidak kritis; bisa ditambah nanti.
+  - *Catatan:* turbo (percepat bot setelah SEMUA manusia finis di mode ranking)
+    sudah diport ke server di **sesi 9** (`isTurbo()` di LudoRoom/HalmaRoom).
 - [x] **Fase B3 — Ketahanan (SELESAI sesi 8)**: (1) **reconnect** ketiga game
   (`allowReconnection` server + auto-reconnect client `lib/online.js` + banner UI);
   (2) **room privat berkode** (`setPrivate` + `create`/`joinById`, kode = roomId,
@@ -481,10 +502,11 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
 3. **Fase B3 — Ketahanan online**: **SELESAI sesi 8** — reconnect
    (`allowReconnection`) + room privat berkode (`setPrivate`/`create`/`joinById`,
    UI buat & gabung lewat kode). Lihat blok sesi 8.
-4. **Turbo bot online** (opsional): percepat langkah bot di mode ranking setelah
-   manusia finis (sudah ada di client offline, BELUM diport ke room server).
-5. **Hall of Fame Mingguan** (v2.0): chip "Mingguan (segera)" sudah ada di UI —
-   tinggal `ready:true` + bucket per-pekan (rencana di `lib/storage.js`).
+4. **Turbo bot online** — **SELESAI sesi 9.** Lihat blok sesi 9.
+5. **[FUTURE / v2.0]** **Hall of Fame Mingguan**: chip "Mingguan (segera)" sudah
+   ada di UI — tinggal `ready:true` + bucket per-pekan (rencana di `lib/storage.js`).
+6. **[FUTURE / v2.0]** **Room privat ukuran khusus** (mis. 1v1 murni): saat ini
+   room privat memakai konfigurasi sama dgn publik (Ludo 4 / Halma 3 / UT 2).
 
 - [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA, kecuali
       **dadu** yang dimulai sesi 6):

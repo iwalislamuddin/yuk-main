@@ -173,6 +173,15 @@ class LudoRoom extends Room {
     }
   }
 
+  // Turbo: mode peringkat, semua MANUSIA sudah finis (posisi-array ada di
+  // ranking). Sisa giliran cuma antar-bot menentukan juru kunci — percepat,
+  // tak perlu ditonton lama (selaras LocalBotController client offline).
+  isTurbo() {
+    const L = this.logic;
+    if (L.mode !== "ranking") return false;
+    return L.players.every((p, i) => p.isBot || L.ranking.includes(i));
+  }
+
   // Jalankan giliran bot di server (sekali per panggilan; rantai lewat sync).
   scheduleBot() {
     if (this.botTimer) {
@@ -182,7 +191,14 @@ class LudoRoom extends Room {
     if (this.logic.phase !== "playing" || this.logic.winner) return;
     const p = Ludo.currentPlayer(this.logic);
     if (!p || !p.isBot) return;
-    const delay = this.logic.dicePending ? 650 : 900;
+    const turbo = this.isTurbo();
+    const delay = turbo
+      ? this.logic.dicePending
+        ? 90
+        : 130
+      : this.logic.dicePending
+        ? 650
+        : 900;
     this.botTimer = this.clock.setTimeout(() => {
       this.botTimer = null;
       if (this.logic.phase !== "playing" || this.logic.winner) return;
