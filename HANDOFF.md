@@ -1,12 +1,68 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 19 Juni 2026 (sesi 9 — **TURBO bot online** (mode peringkat)
-> + **POLISH UI** (kartu game, email kontak, jarak Hall of Fame, slot iklan →
-> promosi Edifisia) + **KODE room privat jadi 4 DIGIT angka**. Semua teruji
-> headless + verifikasi UI di browser; sudah di-commit & di-push ke `main`).
+> Terakhir diperbarui: 19 Juni 2026 (sesi 10 — **VERSI 1.0 DINYATAKAN SELESAI**:
+> analytics & SEO (Google Analytics GA4, sitemap auto-generate saat build,
+> Cloudflare Web Analytics, Google Search Console) + **grafis dadu** (`dice.png`
+> Ular Tangga & Ludo). Sudah di-commit & di-push ke `main`).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
+
+## 🎉 VERSI 1.0 — SELESAI (19 Juni 2026)
+
+Yuk Main v1.0 dinyatakan **selesai oleh user**. Cakupan rilis:
+
+- **3 game** (Ular Tangga, Ludo, Halma) — online lintas internet + lawan bot,
+  reconnect, room privat berkode 4 digit, bot-fill, turbo bot.
+- **Hall of Fame global** (Turso) online + lawan-bot.
+- **Situs publik + blog** (Home/Blog/About/Privacy) untuk SEO/AdSense.
+- **Live**: client di Cloudflare Pages (`yukmain.web.id`), server Colyseus di Render.
+- **Analytics & SEO** (sesi 10): GA4, sitemap auto-generate, Cloudflare Web
+  Analytics, Search Console.
+- **Grafis dadu** (sesi 10) untuk Ular Tangga & Ludo; grafis lain (papan,
+  karakter, pion, kelereng) tetap fallback vektor → **dipindah ke v2.0**.
+
+Sisa roadmap (AdSense, CRUD artikel, grafis penuh, fitur v2.0) ada di
+"Langkah berikutnya" & "Peta fase rilis" di bawah.
+
+## Yang sudah dikerjakan (sesi 10 — 19 Juni 2026)
+
+**Analytics, SEO, & grafis dadu — penutup v1.0. Semua di-commit & push ke `main`.**
+
+1. **Google Analytics 4** (commit `2a49d3e`): tag `gtag.js` (`G-VDW866WV1T`) di
+   `<head>` `app/client/index.html` — aktif untuk semua pengunjung **tanpa env
+   var** (beda dari AdSense yang disuntik dari `main.jsx`). Diverifikasi di
+   preview: beacon `page_view` terkirim ke `google-analytics.com/collect` (204).
+   *Catatan privasi:* jalan tanpa consent banner — kalau nanti perlu patuh GDPR,
+   harus ditahan sampai user setuju.
+2. **Sitemap auto-generate saat build** (commit `7b2881d`): plugin Vite
+   **`app/client/vite-sitemap-plugin.js`** (`apply:"build"`) meng-emit
+   `sitemap.xml` ke `dist/` dari halaman statis + frontmatter artikel blog.
+   `<lastmod>` diambil dari **tanggal asli artikel** (bukan waktu build) supaya
+   sinyalnya jujur & tak bikin Google curiga. **`public/sitemap.xml` statis lama
+   DIHAPUS** (kini tergenerate). Artikel `.md` baru → otomatis masuk sitemap.
+3. **Grafis dadu** (commit `7369bc6`): `dice.png` (576×96, 6 muka 96×96, dadu
+   putih membulat + pip `#143B30`, latar transparan) untuk **Ular Tangga & Ludo**.
+   Dibuat generator **murni Node tanpa dependensi**
+   **`app/client/scripts/gen-dice.mjs`** (pakai `zlib` bawaan; regenerasi:
+   `node scripts/gen-dice.mjs`). Scene sudah dukung sprite dadu → aset ini
+   menggantikan fallback teks. Diverifikasi: kedua file dilayani 200/image-png/
+   576×96, nol 404/error. (Kanvas Phaser WebGL tak bisa di-screenshot di preview
+   headless — batasan tool, bukan bug.)
+4. **Cloudflare Web Analytics** — **diaktifkan user** lewat dashboard CF
+   (cookieless, tanpa edit kode). GTM / Google Ads Conversion / Meta Pixel
+   **sengaja TIDAK dipasang** (rekomendasi: hanya perlu kalau beriklan berbayar;
+   menambah beban + kewajiban consent).
+5. **Google Search Console** — di-setup user; sitemap siap di-submit
+   (`sitemap.xml`). robots.txt live (Cloudflare-managed) tetap memuat baris
+   `Sitemap:` & mengizinkan Googlebot. Catatan: situs di belakang Cloudflare yang
+   memblokir fetcher AI (ClaudeBot/GPTBot) → fetch `/sitemap.xml` dari luar bisa
+   403, tapi **Googlebot tidak terpengaruh**.
+
+> **Verifikasi LIVE pasca-rebuild** (untuk sesi depan, bila lanjut): (a) GA4
+> Realtime menangkap kunjungan ke `yukmain.web.id` (verifikasi penuh GA ~48 jam);
+> (b) submit `sitemap.xml` di Search Console → status Success; (c) dadu tampil di
+> Ular Tangga & Ludo. Ingat cold-start Render ~50 dtk.
 
 ## Gambaran proyek
 
@@ -528,10 +584,9 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
 1. **Polish UI** — rapikan tampilan secara umum. **(BELUM)**
    - Kandidat: tampilan waiting-room/countdown masih digambar di Phaser scene
      (Ludo pakai-ulang tombol kocok, Halma tombol khusus) — bisa dipercantik.
-2. **Dukungan grafis — MULAI dari DADU.** User akan menyediakan `dice.png` lebih
-   dulu. Taruh di `app/client/public/assets/snakes-ladders/dice.png` (format di
-   `PANDUAN-ASET.md`); engine sudah punya fallback, jadi tinggal pasang file +
-   cek visual. Format dadu sama bisa dipakai ulang untuk Ludo.
+2. **Dukungan grafis — DADU SELESAI (sesi 10).** `dice.png` Ular Tangga & Ludo
+   sudah dibuat (generator `app/client/scripts/gen-dice.mjs`, lihat blok sesi 10).
+   Grafis lain (papan, karakter, pion, kelereng) tetap fallback vektor → v2.0.
 3. **Fase B3 — Ketahanan online**: **SELESAI sesi 8** — reconnect
    (`allowReconnection`) + room privat berkode (`setPrivate`/`create`/`joinById`,
    UI buat & gabung lewat kode). Lihat blok sesi 8.
@@ -541,12 +596,12 @@ Rencana matang untuk meramaikan mode online. Tiga komponen, digarap bertahap
 6. **[FUTURE / v2.0]** **Room privat ukuran khusus** (mis. 1v1 murni): saat ini
    room privat memakai konfigurasi sama dgn publik (Ludo 4 / Halma 3 / UT 2).
 
-- [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA, kecuali
-      **dadu** yang dimulai sesi 6):
+- [ ] **[v2.0+ / post-production]** File grafis untuk KETIGA game (DITUNDA;
+      **dadu SELESAI sesi 10** untuk Ular Tangga & Ludo):
       - Ular Tangga: `app/client/public/assets/snakes-ladders/` (PANDUAN-ASET.md)
-        — `board.png`, `char-1..4.png`, `dice.png`, `snake.png`, `ladder.png`.
+        — `board.png`, `char-1..4.png`, ~~`dice.png`~~ ✅, `snake.png`, `ladder.png`.
       - Ludo: `app/client/public/assets/ludo/` (PANDUAN-ASET.md)
-        — `board.png`, `pin-1..4.png`, `dice.png` (dadu sama formatnya).
+        — `board.png`, `pin-1..4.png`, ~~`dice.png`~~ ✅ (dadu sama formatnya).
       - Halma: `app/client/public/assets/halma/` (PANDUAN-ASET.md)
         — `board.png` (papan bintang) + `marble.png` (satu kelereng putih,
         di-tint per warna oleh engine).
