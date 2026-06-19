@@ -10,7 +10,6 @@ export default function GameCard({ game, waiting = 0 }) {
       )}
       <span className="game-icon" aria-hidden="true">{game.icon}</span>
       <h3>{game.name}</h3>
-      <p>{game.desc}</p>
       <span className={game.available ? "badge live" : "badge"}>
         {game.available ? `${game.players} pemain` : "Segera hadir"}
       </span>

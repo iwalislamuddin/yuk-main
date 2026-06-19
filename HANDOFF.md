@@ -1,10 +1,10 @@
 # Handoff — Yuk Main
 
 > Catatan serah-terima antar sesi pengembangan. Perbarui file ini di akhir sesi.
-> Terakhir diperbarui: 18 Juni 2026 (sesi 8 — **Fase B3 SELESAI**: RECONNECT
-> (`allowReconnection`) + ROOM PRIVAT berkode untuk ketiga game; PLUS perbaikan
-> matchmaking SATU ANTRIAN per game (konfigurasi online dipatok, `filterBy`
-> dibuang). Semua teruji headless + browser; BELUM di-commit/push).
+> Terakhir diperbarui: 19 Juni 2026 (sesi 9 — **TURBO bot online** (mode peringkat)
+> + **POLISH UI** (kartu game, email kontak, jarak Hall of Fame, slot iklan →
+> promosi Edifisia) + **KODE room privat jadi 4 DIGIT angka**. Semua teruji
+> headless + verifikasi UI di browser; sudah di-commit & di-push ke `main`).
 > Brand: **Yuk Main** (yukmain.web.id). Nama lama "Arena Papan" hanya tersisa di
 > ID/paket internal (mis. `app/package.json` "arena-papan", `/health` server).
 
@@ -300,8 +300,41 @@ lama). Selaras dengan `LocalBotController` offline.
    saat manusia belum finis, ON saat finis, OFF di mode single, dan (2 manusia) ON
    hanya saat KEDUANYA finis. Server-only; tak ada dep baru.
 
-> **Keputusan user (sesi 9):** room privat 1v1 murni & Hall of Fame Mingguan
-> DITUNDA ke future development (v2.0). Lihat "Langkah berikutnya" item 5 & 6.
+**Polish UI (wording/texting).**
+1. **Kartu game** (`GameCard.jsx`): hanya **ikon + judul + badge** (deskripsi
+   `game.desc` dibuang); CSS `.game-card p` dihapus. Badge "live" tetap.
+2. **Email kontak** → **`iwal@yukmain.web.id`** (di `About.jsx` & `Privacy.jsx`).
+3. **Hall of Fame**: jarak baris filter ↔ tabel dilebarkan (`margin-top:20px` pada
+   `.hof table, .hof .empty`).
+4. **Slot iklan** (`AdSlot.jsx`): selama AdSense belum aktif (`VITE_ADSENSE_CLIENT`
+   kosong — catatan jadi komentar internal), slot menampilkan **promosi mitra
+   Edifisia** (link `https://lynk.id/edifisia`). SENGAJA beda tema dari Yuk Main
+   (font **Georgia serif** + palet **slate/biru**, bukan Fredoka/amber), diberi
+   **jarak 48px** + label "PROMOSI MITRA" supaya jelas bukan bagian situs. Unit
+   AdSense `<ins>` tetap dirender bila env diisi nanti.
+
+**Kode room privat → 4 DIGIT ANGKA** (sebelumnya = roomId Colyseus 9-char, susah
+disebar). Sekarang kode = angka **1000–9999**, jauh lebih mudah dibagikan lisan.
+- **Server:** helper baru **`app/server/rooms/privateCode.js`**
+  (`generatePrivateCode(roomName)` cek bentrok via `matchMaker.query`, default
+  `DIGITS=4` — **bisa dinaikkan 5/6/…**; `findRoomIdByCode`). Tiap room
+  (`Ludo/Halma/SnakesLadders`) `onCreate` kini **async**: bila privat → generate
+  kode, simpan di **metadata** (`setMetadata({code})`, untuk resolusi) **dan di
+  state schema** (`code`, untuk host bagikan). Endpoint baru **`GET /private-room?
+  game=&code=`** (`index.js`) resolusi kode→roomId (regex `\d{3,8}` ramah ekspansi).
+- **Client:** `lib/online.js` — `createPrivate` menunggu `room.state.code` tiba;
+  `joinByCode(controller, roomName, code)` resolusi via endpoint lalu `joinById`.
+  Tiap `OnlineController.getCode()` baca `room.state.code`; `connectByCode` kirim
+  roomName. Input "gabung kode" di `GamePage.jsx` jadi numerik (sanitasi `\D`,
+  `maxLength 8`).
+- **Diverifikasi headless** (`reconnect.test.cjs` Skenario 4 diperbarui): host dapat
+  kode 4 digit, publik tak masuk room privat, endpoint resolusi kode→roomId benar,
+  teman join via roomId hasil resolusi, kode salah (`0000`) → 404. Semua lulus;
+  turbo.test tetap lulus; `vite build` bersih.
+
+> **Keputusan user (sesi 9):** room privat **1v1 ukuran khusus** & Hall of Fame
+> Mingguan DITUNDA ke future development (v2.0). Lihat "Langkah berikutnya" item 5 & 6.
+> (Kode 4 digit di atas BERBEDA dari ukuran 1v1 — itu sudah dikerjakan sesi ini.)
 
 ## Yang sudah dikerjakan (sesi 8 — 18 Juni 2026)
 

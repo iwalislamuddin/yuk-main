@@ -239,16 +239,9 @@ a.game-card:hover {
 }
 
 .game-card h3 {
-  margin: 10px 0 6px;
+  margin: 10px 0 14px;
   font-weight: 600;
   color: var(--felt-dark);
-}
-
-.game-card p {
-  font-size: 13px;
-  color: var(--ink-soft);
-  margin: 0 0 14px;
-  min-height: 38px;
 }
 
 .badge {
@@ -365,6 +358,12 @@ a.game-card:hover {
 .chip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Jarak antara baris filter (Permainan) dan tabel/empty-state. */
+.hof table,
+.hof .empty {
+  margin-top: 20px;
 }
 
 .hof table {
@@ -588,14 +587,52 @@ a.game-card:hover {
 }
 
 /* ---------- Iklan & kondisi kosong ---------- */
-.ad-placeholder {
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  color: #9fc3b2;
-  font-size: 13px;
+/* Slot promosi mitra (Edifisia) — dipakai selama AdSense belum aktif.
+   SENGAJA dibuat beda tema dari Yuk Main (font serif + palet slate, bukan
+   Fredoka/amber) dan diberi jarak jauh, supaya jelas bukan bagian situs ini. */
+.promo-slot {
+  font-family: Georgia, "Times New Roman", serif;
+  border: 1px solid #c2ccd6;
+  border-left: 4px solid #3f6f9f;
+  background: #f3f5f8;
+  border-radius: 8px;
   text-align: center;
-  padding: 28px 16px;
-  margin-top: 8px;
+  padding: 20px 18px;
+  margin-top: 48px;
+}
+
+.promo-eyebrow {
+  display: block;
+  font-family: system-ui, "Segoe UI", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a8794;
+  margin-bottom: 8px;
+}
+
+.promo-text {
+  color: #324049;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+
+.promo-link {
+  display: inline-block;
+  font-family: system-ui, "Segoe UI", sans-serif;
+  background: #3f6f9f;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  padding: 9px 18px;
+  border-radius: 6px;
+}
+
+.promo-link:hover {
+  background: #345d86;
 }
 
 .empty {

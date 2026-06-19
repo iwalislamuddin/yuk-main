@@ -7,6 +7,7 @@ const { WebSocketTransport } = require("@colyseus/ws-transport");
 const { SnakesLaddersRoom } = require("./rooms/SnakesLaddersRoom");
 const { LudoRoom } = require("./rooms/LudoRoom");
 const { HalmaRoom } = require("./rooms/HalmaRoom");
+const { findRoomIdByCode } = require("./rooms/privateCode");
 const hof = require("./hof/store");
 
 const PORT = process.env.PORT || 2567;
@@ -26,6 +27,26 @@ const ROOM_TO_GAME = {
   ludo: "ludo",
   halma: "halma"
 };
+const ROOM_NAMES = new Set(Object.keys(ROOM_TO_GAME));
+
+// GET /private-room?game=<roomName>&code=<kode> -> { roomId }
+//   Resolusi KODE room privat (4+ digit) menjadi roomId Colyseus, supaya client
+//   bisa joinById. 404 bila kode tak cocok room privat aktif mana pun.
+app.get("/private-room", async (req, res) => {
+  const game = String(req.query.game || "");
+  const code = String(req.query.code || "").trim();
+  if (!ROOM_NAMES.has(game) || !/^\d{3,8}$/.test(code)) {
+    return res.status(400).json({ error: "permintaan tidak valid" });
+  }
+  try {
+    const roomId = await findRoomIdByCode(game, code);
+    if (!roomId) return res.status(404).json({ error: "kode tidak ditemukan" });
+    res.json({ roomId });
+  } catch (e) {
+    console.error("[private-room] gagal:", e.message);
+    res.status(500).json({ error: "gagal mencari room" });
+  }
+});
 
 // GET /lobby -> { online, rooms, waitingByGame }
 //   online        = jumlah client tersambung di semua room (orang siap main).

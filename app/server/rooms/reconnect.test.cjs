@@ -97,28 +97,30 @@ async function main() {
   await t2.leave(true);
   await sleep(300);
 
-  // --- Skenario 4: room privat berkode (B3 bagian 2) ---
-  console.log("Skenario 4: room privat berkode");
+  // --- Skenario 4: room privat berkode 4 digit (B3 bagian 2, kode baru) ---
+  console.log("Skenario 4: room privat berkode 4 digit");
+  const HTTP = `http://localhost:${process.env.PORT}`;
   const host = await client.create("ludo", { private: true, name: "Gita" });
-  const code = host.roomId;
-  check(!!code, "host dapat kode room (roomId)");
+  await sleep(300); // tunggu state.code tiba dari server
+  const code = host.state.code;
+  check(/^\d{4}$/.test(code || ""), `host dapat kode 4 digit (${code})`);
   // Pemain publik TIDAK boleh mendarat di room privat.
   const pub = await client.joinOrCreate("ludo", { name: "Publik" });
-  check(pub.roomId !== code, "joinOrCreate publik TIDAK masuk room privat");
+  check(pub.roomId !== host.roomId, "joinOrCreate publik TIDAK masuk room privat");
   await pub.leave(true);
-  // Teman gabung lewat KODE -> room privat yang sama.
-  const friend = await client.joinById(code, { name: "Hadi" });
-  check(friend.roomId === code, "teman joinById masuk room privat yang sama");
+  // Resolusi KODE -> roomId lewat endpoint server.
+  const resolveRes = await fetch(`${HTTP}/private-room?game=ludo&code=${code}`);
+  check(resolveRes.ok, "endpoint /private-room balas OK untuk kode benar");
+  const resolved = await resolveRes.json();
+  check(resolved.roomId === host.roomId, "roomId hasil resolusi == room host");
+  // Teman gabung lewat roomId hasil resolusi -> room privat yang sama.
+  const friend = await client.joinById(resolved.roomId, { name: "Hadi" });
+  check(friend.roomId === host.roomId, "teman joinById masuk room privat yang sama");
   await sleep(300);
   check(!!findPlayer(host.state, "Hadi"), "teman terlihat di room privat host");
-  // Kode salah -> gagal join.
-  let badCodeRejected = false;
-  try {
-    await client.joinById("KODENGAWUR", { name: "X" });
-  } catch (e) {
-    badCodeRejected = true;
-  }
-  check(badCodeRejected, "kode salah ditolak (joinById gagal)");
+  // Kode salah (0000 tak pernah dibuat, min 1000) -> 404.
+  const badRes = await fetch(`${HTTP}/private-room?game=ludo&code=0000`);
+  check(badRes.status === 404, "kode salah -> 404 dari endpoint");
   await host.leave(true);
   await friend.leave(true);
   await sleep(300);

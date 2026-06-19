@@ -2,6 +2,7 @@ const { Room } = require("colyseus");
 const { HalmaPlayer, HalmaState } = require("./halmaSchema");
 const Halma = require("../logic/halma");
 const { pickBotMove } = require("../bots/halma");
+const { generatePrivateCode } = require("./privateCode");
 const hof = require("../hof/store");
 
 const COUNTDOWN_MS = 30_000;
@@ -17,7 +18,7 @@ const BOT_LEVEL = "normal"; // tingkat bot pengisi online
  * kursi diisi bot. Bot dijalankan server (heuristik identik LocalBotController).
  */
 class HalmaRoom extends Room {
-  onCreate(options) {
+  async onCreate(options) {
     // Konfigurasi online DIPATOK (otoritatif): satu antrian per game — lihat
     // catatan di LudoRoom. Halma online selalu 3 pemain, mode peringkat.
     this.target = 3;
@@ -25,9 +26,15 @@ class HalmaRoom extends Room {
     this.gameMode = "ranking";
     this.logic = Halma.createState(this.gameMode, this.target);
 
-    // Room privat (B3): hanya bisa digabung lewat KODE (roomId) -> joinById.
-    if (options?.private) this.setPrivate(true);
+    // Room privat (B3): hanya bisa digabung lewat KODE 4 digit. Kode disimpan di
+    // metadata (resolusi -> roomId) & di state (untuk host bagikan).
     this.isPrivate = !!options?.private;
+    this.code = "";
+    if (this.isPrivate) {
+      this.setPrivate(true);
+      this.code = await generatePrivateCode("halma");
+      await this.setMetadata({ code: this.code });
+    }
     this.startsAt = 0;
     this.countdownTimer = null;
     this.botTimer = null;
@@ -201,6 +208,7 @@ class HalmaRoom extends Room {
     s.playerCount = L.playerCount;
     s.target = this.target;
     s.startsAt = this.startsAt || 0;
+    s.code = this.code || "";
 
     for (const p of L.players) {
       let sp = s.players.get(p.id);

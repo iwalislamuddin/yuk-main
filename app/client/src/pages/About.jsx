@@ -53,7 +53,7 @@ export default function About() {
       <h3>Kontak</h3>
       <p>
         Ada masukan, laporan bug, atau pertanyaan? Hubungi kami di{" "}
-        <a href="mailto:kontak@yukmain.web.id">kontak@yukmain.web.id</a>.
+        <a href="mailto:iwal@yukmain.web.id">iwal@yukmain.web.id</a>.
       </p>
     </div>
   );

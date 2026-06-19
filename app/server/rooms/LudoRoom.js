@@ -1,6 +1,7 @@
 const { Room } = require("colyseus");
 const { LudoPlayer, LudoState } = require("./ludoSchema");
 const Ludo = require("../logic/ludo");
+const { generatePrivateCode } = require("./privateCode");
 const hof = require("../hof/store");
 
 const COUNTDOWN_MS = 30_000; // jeda standby sebelum sisa kursi diisi bot
@@ -23,7 +24,7 @@ const LUDO_SEATS = { 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3] };
  * server (heuristik identik LocalBotController client).
  */
 class LudoRoom extends Room {
-  onCreate(options) {
+  async onCreate(options) {
     // Konfigurasi online DIPATOK (otoritatif): satu antrian per game supaya dua
     // pemain yang online berdekatan waktunya pasti mendarat di room yang sama
     // (tak ada lagi fragmentasi 2/3/4 × mode). Sisa kursi diisi bot.
@@ -33,9 +34,15 @@ class LudoRoom extends Room {
     this.logic = Ludo.createState(this.gameMode);
 
     // Room privat (B3): dibuat lewat client.create({private:true}); tak muncul di
-    // matchmaking publik & lobi, hanya bisa digabung lewat KODE (roomId) -> joinById.
-    if (options?.private) this.setPrivate(true);
+    // matchmaking publik & lobi, hanya bisa digabung lewat KODE 4 digit. Kode
+    // disimpan di metadata (untuk resolusi -> roomId) & di state (untuk host).
     this.isPrivate = !!options?.private;
+    this.code = "";
+    if (this.isPrivate) {
+      this.setPrivate(true);
+      this.code = await generatePrivateCode("ludo");
+      await this.setMetadata({ code: this.code });
+    }
     this.startsAt = 0; // epoch ms akhir countdown (0 = tak ada)
     this.countdownTimer = null;
     this.botTimer = null;
@@ -261,6 +268,7 @@ class LudoRoom extends Room {
     s.mode = L.mode;
     s.target = this.target;
     s.startsAt = this.startsAt || 0;
+    s.code = this.code || "";
 
     for (const p of L.players) {
       let sp = s.players.get(p.id);

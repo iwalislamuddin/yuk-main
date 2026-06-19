@@ -17,19 +17,19 @@ export class OnlineController {
     await joinPublic(this, "snakes_ladders", { name: this.playerName });
   }
 
-  // Buat room privat (B3): roomId jadi kode undangan (lihat getCode()).
+  // Buat room privat (B3): server membuat kode 4 digit (lihat getCode()).
   async connectPrivate() {
     await createPrivate(this, "snakes_ladders", { name: this.playerName });
   }
 
-  // Gabung room privat lewat kode.
+  // Gabung room privat lewat kode 4 digit.
   async connectByCode(code) {
-    await joinByCode(this, code, { name: this.playerName });
+    await joinByCode(this, "snakes_ladders", code, { name: this.playerName });
   }
 
-  // Kode undangan room (= roomId) untuk dibagikan saat buat room privat.
+  // Kode undangan room (4 digit, dari state server) untuk dibagikan host.
   getCode() {
-    return this.room?.roomId || "";
+    return this.room?.state?.code || "";
   }
 
   mapState(state) {

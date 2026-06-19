@@ -30,6 +30,7 @@ class LudoState extends Schema {
     this.mode = "single"; // single | ranking
     this.target = 2; // jumlah pemain target room (2..4)
     this.startsAt = 0; // epoch ms akhir countdown standby (0 = tak ada)
+    this.code = ""; // kode room privat (4 digit) bila room privat; else ""
     this.legalTokens = new ArraySchema(); // pion sah utk pemain giliran ini
     this.ranking = new ArraySchema(); // nama pemain urut finis (juara 1 dulu)
   }
@@ -44,6 +45,7 @@ defineTypes(LudoState, {
   mode: "string",
   target: "number",
   startsAt: "number",
+  code: "string",
   legalTokens: ["number"],
   ranking: ["string"]
 });

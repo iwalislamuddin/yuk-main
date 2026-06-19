@@ -1,6 +1,7 @@
 const { Room } = require("colyseus");
 const { Player, SnakesLaddersState } = require("./schema");
 const { applyMove, rollDice, FINISH } = require("../logic/snakesLadders");
+const { generatePrivateCode } = require("./privateCode");
 const hof = require("../hof/store");
 
 // Masa tenggang reconnect saat pemain terputus (B3). Override via env utk tes.
@@ -13,14 +14,19 @@ const RECONNECT_SECONDS = Number(process.env.RECONNECT_SECONDS) || 30;
  * - state otomatis tersinkron ke semua client lewat Colyseus.
  */
 class SnakesLaddersRoom extends Room {
-  onCreate(options) {
+  async onCreate(options) {
     this.maxClients = 2; // naikkan ke 4 untuk mendukung lebih banyak pemain
     this.setState(new SnakesLaddersState());
     this.turnOrder = [];
 
-    // Room privat (B3): hanya bisa digabung lewat KODE (roomId) -> joinById.
-    if (options?.private) this.setPrivate(true);
+    // Room privat (B3): hanya bisa digabung lewat KODE 4 digit. Kode disimpan di
+    // metadata (resolusi -> roomId) & di state (untuk host bagikan).
     this.isPrivate = !!options?.private;
+    if (this.isPrivate) {
+      this.setPrivate(true);
+      this.state.code = await generatePrivateCode("snakes_ladders");
+      await this.setMetadata({ code: this.state.code });
+    }
 
     this.onMessage("roll", (client) => this.handleRoll(client.sessionId));
   }

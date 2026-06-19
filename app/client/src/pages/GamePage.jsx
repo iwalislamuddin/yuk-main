@@ -170,10 +170,13 @@ export default function GamePage({ playerName }) {
             >
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
                 aria-label="Kode room"
-                placeholder="Punya kode? Tempel di sini"
+                placeholder="Punya kode? Masukkan angkanya"
                 value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value)}
+                onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
               />
               <button type="submit" className="private-btn" disabled={!codeInput.trim()}>
                 Gabung

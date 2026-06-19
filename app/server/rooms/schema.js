@@ -24,6 +24,7 @@ class SnakesLaddersState extends Schema {
     this.lastDice = 0;
     this.winner = "";
     this.phase = "waiting"; // waiting | playing | finished
+    this.code = ""; // kode room privat (4 digit) bila room privat; else ""
   }
 }
 defineTypes(SnakesLaddersState, {
@@ -31,7 +32,8 @@ defineTypes(SnakesLaddersState, {
   currentTurn: "string",
   lastDice: "number",
   winner: "string",
-  phase: "string"
+  phase: "string",
+  code: "string"
 });
 
 module.exports = { Player, SnakesLaddersState };

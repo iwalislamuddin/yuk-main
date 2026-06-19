@@ -90,7 +90,7 @@ export default function Privacy() {
       <h3>Kontak</h3>
       <p>
         Jika ada pertanyaan tentang kebijakan privasi ini, hubungi kami di{" "}
-        <a href="mailto:kontak@yukmain.web.id">kontak@yukmain.web.id</a>.
+        <a href="mailto:iwal@yukmain.web.id">iwal@yukmain.web.id</a>.
       </p>
 
       <p>

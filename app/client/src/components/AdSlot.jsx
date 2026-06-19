@@ -22,11 +22,26 @@ export default function AdSlot({ slot, format = "auto", style }) {
     }
   }, [client]);
 
+  // Internal note: AdSense belum diaktifkan (VITE_ADSENSE_CLIENT belum diisi).
+  // Sementara slot dipakai untuk promosi mandiri (Edifisia). Begitu env diisi,
+  // unit AdSense di bawah akan dirender menggantikan promo ini.
   if (!client) {
     return (
-      <div className="ad-placeholder">
-        Slot iklan AdSense ({slot}) - set VITE_ADSENSE_CLIENT untuk mengaktifkan
-      </div>
+      <aside className="promo-slot">
+        <span className="promo-eyebrow">Promosi mitra</span>
+        <p className="promo-text">
+          Edifisia: rumahnya library, spreadsheet, dan ebook teknik sipil —
+          praktis, rapi, siap pakai.
+        </p>
+        <a
+          className="promo-link"
+          href="https://lynk.id/edifisia"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Lihat Edifisia di sini
+        </a>
+      </aside>
     );
   }
 

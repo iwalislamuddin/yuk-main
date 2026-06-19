@@ -30,16 +30,45 @@ export async function joinPublic(controller, roomName, options) {
   bindRoom(controller, room);
 }
 
-// Room privat (B3): selalu BUAT room baru + setPrivate; roomId jadi KODE undangan.
+// Room privat (B3): BUAT room baru + setPrivate. Server membuat KODE 4 digit &
+// menaruhnya di state; tunggu sampai tiba supaya getCode() langsung benar.
 export async function createPrivate(controller, roomName, options) {
   const room = await ensureClient(controller).create(roomName, { ...options, private: true });
   bindRoom(controller, room);
+  await waitForCode(room);
 }
 
-// Gabung room privat lewat KODE (roomId). Lempar error bila kode salah/penuh.
-export async function joinByCode(controller, code, options) {
-  const room = await ensureClient(controller).joinById(code, options);
+// Gabung room privat lewat KODE 4 digit. Kode bukan roomId, jadi diresolusi dulu
+// ke roomId lewat server, baru joinById. Lempar error bila kode salah/penuh.
+export async function joinByCode(controller, roomName, code, options) {
+  const roomId = await resolvePrivateCode(controller.url, roomName, code);
+  const room = await ensureClient(controller).joinById(roomId, options);
   bindRoom(controller, room);
+}
+
+// Tunggu kode privat tiba dari state server (default 3 dtk) lalu kembalikan.
+function waitForCode(room, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      const code = room.state && room.state.code;
+      if (code) return resolve(String(code));
+      if (Date.now() - start > timeoutMs) return resolve("");
+      setTimeout(tick, 50);
+    };
+    tick();
+  });
+}
+
+// Resolusi KODE 4 digit -> roomId lewat endpoint server (ws->http). 404 = salah.
+async function resolvePrivateCode(wsUrl, roomName, code) {
+  const httpBase = String(wsUrl).replace(/^ws/, "http");
+  const url = `${httpBase}/private-room?game=${encodeURIComponent(roomName)}&code=${encodeURIComponent(code)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("kode tidak ditemukan");
+  const data = await res.json();
+  if (!data?.roomId) throw new Error("kode tidak ditemukan");
+  return data.roomId;
 }
 
 // Pasang room ke controller: salurkan state + pantau putus untuk reconnect.
