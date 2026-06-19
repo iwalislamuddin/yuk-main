@@ -1,10 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import sitemap from "./vite-sitemap-plugin.js";
 
 export default defineConfig({
   plugins: [
     react(),
+    sitemap(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["pwa-192.png", "pwa-512.png"],
